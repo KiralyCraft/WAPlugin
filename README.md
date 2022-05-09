@@ -1,0 +1,2 @@
+# EndavaPlugin
+Pluginul magic
