@@ -3,8 +3,19 @@ this.key = null; // my key (some sort of plug-in instalation ID)
 this.version = chrome.runtime.getManifest().version;
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
-    console.log("Message received:", receivedMessage);
-    message = receivedMessage;
+    console.log("Message received from the user's page: ", receivedMessage);
+    message = receivedMessage; // just for the popup page
+
+    var loggingObject;
+    loggingObject.message = receivedMessage;
+    loggingObject.reportTime = (new Date()).getTime();
+    loggingObject.key = key;
+    loggingObject.pluginVersion = version;
+
+    // do wathever business logic with the loggingObject
+    // either client side
+    // or server side
+    // $.post("https://www.scs.ubbcluj.ro/plugin/logging.php", loggingObject);
 });
 
 // clean the chrome storage
