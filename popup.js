@@ -1,26 +1,23 @@
 function render() {
     chrome.tabs.getSelected(null, function (selectedTab) {
-        $("#message").html('Logging...');
+        $('#hello').html('The plugin is functioning normally...');
         chrome.runtime.getBackgroundPage(function (backgroundPage) {
             var message = backgroundPage.message;
-            var key = backgroundPage.key;
-            var version = backgroundPage.version;
 
-            if (! message)
+            if (! message) {
+                $('#debug').html('No message do display');
                 return;
+            }
 
-            message.reportTime = (new Date()).getTime();
-
-            message.key = key;
-            message.pluginVersion = version;
-            console.log(message);
-            $.post("https://www.scs.ubbcluj.ro/plugin/logging.php", message);
+            $('#debug').html('Last logging message: ' + message);
+//          You can even post a message to a backend service
+//          $.post("https://www.scs.ubbcluj.ro/plugin/logging.php", message);
         });
     });
 
     setTimeout(function () {
        window.close();
-    }, 30000);
+    }, 3000);
 
 }
 

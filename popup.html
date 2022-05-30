@@ -13,7 +13,7 @@
         /*font-size: 100%;*/
         /*background-color: deeppink;*/
       }
-      #message {
+      #plugin {
         /* avoid an excessively wide status text */
         white-space: pre;
         /*text-overflow: ellipsis;*/
@@ -29,10 +29,12 @@
       - [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
      -->
      <script src="jquery.min.js"></script>
-	 <script src="popup.js"></script>
+     <script src="popup.js"></script>
   </head>
   <body>
-    <div id="message"></div>
+  <div id="plugin">
+    <div id="hello"></div>
+    <div id="debug"></div>
+  </div>
   </body>
 </html>
-

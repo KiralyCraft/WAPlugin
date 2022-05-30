@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
-  "name": "Backend logging plugin",
-  "description": "Backend logging plugin",
+  "name": "Scientific Research Plug-in",
+  "description": "Scientific Research Plug-in",
   "version": "0.0.1",
   "icons": {
     "256": "icon_256.png"
@@ -12,7 +12,7 @@
   "browser_action": {
     "default_icon": "icon_256.png",
     "default_popup": "popup.html",
-    "default_title": "Backend logging plugin"
+    "default_title": "Scientific Research Plug-in"
   },
 
   "content_scripts": [
@@ -36,7 +36,7 @@
   "permissions": [
     "tabs",
     "storage",
-    "webRequest", 
+    "webRequest",
     "webRequestBlocking",
     "ws://*/*", 
     "wss://*/*",
