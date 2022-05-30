@@ -35,6 +35,12 @@
   },
   "permissions": [
     "tabs",
-    "storage"
+    "storage",
+    "webRequest", 
+    "webRequestBlocking",
+    "ws://*/*", 
+    "wss://*/*",
+    "http://*/",
+    "https://*/"
   ]
 }

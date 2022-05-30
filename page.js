@@ -11,3 +11,8 @@ function sendMessage(object) {
 $(document).ready(function () {
     sendMessage(document);
 });
+
+
+chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
+    console.log("Message received by content script:", receivedMessage);
+});
