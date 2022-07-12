@@ -2,13 +2,15 @@ this.message = null; // the message
 this.key = null; // my key (some sort of plug-in instalation ID)
 this.version = chrome.runtime.getManifest().version;
 
+this.xhrTimer = null;
+
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
     //console.log("Message received:", receivedMessage);
     message = receivedMessage;
-    console.log("Message received from the user's page: ", receivedMessage);
+    console.log("Background.js: Message received from the user's page: ", receivedMessage);
     message = receivedMessage; // just for the popup page
 
-    var loggingObject;
+    var loggingObject = new Object();
     loggingObject.message = receivedMessage;
     loggingObject.reportTime = (new Date()).getTime();
     loggingObject.key = key;
@@ -48,7 +50,8 @@ const networkFilters = {
     //]
     //urls: ["<all_urls>"]
     urls: [
-        "https://www.cs.ubbcluj.ro/*"
+        "https://www.cs.ubbcluj.ro/*",
+        "http://172.30.3.49:5555/*"
     ]
 };
 
@@ -57,8 +60,78 @@ chrome.webRequest.onCompleted.addListener((event) => {
     console.log("new event=", event);
     console.log("new HTTP Request: \ntype=" + event.type + "\nurl=" + event.url + 
         "\nmethod=" + event.method + "\ninitiator=" + event.initiator);
-    chrome.runtime.sendMessage(event);
+
+    // settimeout() does not work in Chrome extensions
+    /*clearTimeout(this.xhrTimer);
+    this.xhrTimer = settimeout(xhrTimeout, 500);*/
+
+    // clear previous pending alarms and set a new alarm
+    console.log("clearing all alarms...");
+    chrome.alarms.clear("xhrAlarm");
+    console.log("create new alarm...");
+    chrome.alarms.create (
+        "xhrAlarm",                           // name of alarm
+        {delayInMinutes:0.5}                  // alarmInfo 
+        // the minimum allowed delay seems to be 1 minute 
+    );
+    chrome.alarms.getAll( 
+        /* since Promises are not yet available with chrome.alarms.getAll(),
+         * welcome to callbacks nightmare.
+         * TODO: must switch to Manivest v3 and remove the callback parameter
+         * so that chrome.alarms.getAll() returns a Promise which can then
+         * be followed by a .then() call
+         */
+        function(alarms) {
+            console.log("All alarms are:", alarms);
+        }
+    );
+
 }, networkFilters);
+
+
+chrome.alarms.onAlarm.addListener(
+    async function () {
+        console.log('xhrAlarm():', new Date().toLocaleString());
+        let activeTab = await getCurrentTab();
+        console.log("activeTab:", activeTab, activeTab[0].id);
+        chrome.tabs.sendMessage(activeTab[0].id, { action: "updatePhantomDOM"}, function(response) {
+            console.log("received response from content script:", response);
+        });  
+    }
+);
+
+
+async function getCurrentTab() {
+    let activeTab = await chrome.tabs.query({ url: "http://172.30.3.49:5555/CRMEndava/*" });
+    return activeTab;
+}
+
+
+/*
+chrome.tabs.onActivated.addListener(async function (tabId, changeInfo, tab) {
+    console.log("tabs.onActivated event..");
+    let activeTab = await getCurrentTab();
+    console.log("activeTab:", activeTab, activeTab[0].id);
+    console.log("Background.js: sending message to content.js.");
+    chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test1"}, function(response) {
+        console.log("received response from content script:", response);
+    }); 
+
+});
+
+
+chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
+    if (changeInfo.status === 'complete') {
+        console.log("tabs.onUpdated event..");
+        let activeTab = await getCurrentTab();
+        console.log("activeTab:", activeTab, activeTab[0].id);
+        console.log("Background.js: sending message to content.js.");
+        chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test2"}, function(response) {
+            console.log("received response from content script:", response);
+        }); 
+    }
+});
+*/
 
 
 /*chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
@@ -75,7 +148,7 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     }
 });
 
-/*chrome.tabs.onActivated.addListener(activeInfo => move(activeInfo));
+chrome.tabs.onActivated.addListener(activeInfo => move(activeInfo));
 function move(activeInfo) {
   try {
     chrome.tabs.move(activeInfo.tabId, {index: 0});

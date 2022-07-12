@@ -1,6 +1,6 @@
 // send a message to the background page containing whatever message (even an object)
 
-function sendMessage(message) {
+/*function sendMessage(message) {
     console.log(window.location.href);
     console.log(message);
 
@@ -21,17 +21,29 @@ XMLHttpRequest = function()
 
 // do whatever business logic here
 $(document).ready(function () {
-<<<<<<< HEAD
     sendMessage(document);
 });
+*/
+
+console.log("Start of content.js.");
+
+chrome.runtime.sendMessage({text: "Start Message: Content.js is up and ready."});
 
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
     console.log("Message received by content script:", receivedMessage);
-});
-=======
-//    sendMessage('Just a demo message injected by the logging plugin!');
-    console.log('Plugin is injecting code into the web page...');
+
+    //chrome.runtime.sendMessage({response: "OK1"});
+    //sendResponse({response: "OK"});
+
+    if (receivedMessage.action == "updatePhantomDOM") {
+        saveDOMtoLocalStorage();
+        chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
+            console.log(items);
+        });
+        sendResponse({response: "Phantom DOM updated successfully."});
+    }
+
 
     // var origOpen = XMLHttpRequest.prototype.open;
     // XMLHttpRequest.prototype.open = function() {
@@ -57,4 +69,45 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     //     }
     // });
 });
->>>>>>> 08e86f3497767a36fe2b89bec59d24d9b70d0169
+
+
+function saveDOMtoLocalStorage() {
+      //let fullDOM = document.body.innerHTML;
+      // consider only the DOM of the iframe:
+      let fullDOM = window.frames[0].document.body.innerHTML;
+      
+
+      let FullDOMstring = JSON.stringify(fullDOM);
+      console.log("FullDOMstring:", FullDOMstring);
+
+      // save DOM string to local storage
+      chrome.storage.local.set({ "FullDOMstring": FullDOMstring }, function(){} );
+
+
+      // give each tag element TaskMate custom attributes
+      walkDOM(document.body);
+}
+
+
+function walkDOM(main) {
+    //var arr = [];
+    let taskmateID = 1;
+    var loop = function(main) {
+        
+        do {
+            //arr.push(main);
+            if (main.nodeType == 1) {    // ignore text nodes
+                console.log("setting custom attribute for", main);
+                main.setAttribute("taskmateID", taskmateID);
+                taskmateID ++;
+            }
+
+            if(main.hasChildNodes())
+                loop(main.firstChild);
+        }
+        while (main = main.nextSibling);
+    }
+    loop(main);
+    //return arr;
+}
+

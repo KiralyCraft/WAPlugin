@@ -1,7 +1,7 @@
 {
-  "manifest_version": 2,
-  "name": "Scientific Research Plug-in",
-  "description": "Scientific Research Plug-in",
+  "manifest_version": 3,
+  "name": "Taskmate Research Plugin",
+  "description": "Taskmate Research Plugin",
   "version": "0.0.1",
   "icons": {
     "256": "icon_256.png"
@@ -9,10 +9,10 @@
   "author": "Darius Bufnea",
   "homepage_url": "https://www.scs.ubbcluj.ro/plugin",
 
-  "browser_action": {
+  "action": {
     "default_icon": "icon_256.png",
     "default_popup": "popup.html",
-    "default_title": "Scientific Research Plug-in"
+    "default_title": "Taskmate Research Plugin"
   },
 
   "content_scripts": [
@@ -21,23 +21,25 @@
         "<all_urls>"
       ],
       "js": [
-        "jquery.min.js",
+        //"jquery.min.js",
         "page.js"
       ]
     }
   ],
 
   "background": {
-    "scripts": [
-      "jquery.min.js",
-      "background.js"
-    ]
+    "service_worker": "background.js"
+    //"type": "module" //optional   
   },
+
   "permissions": [
     "tabs",
     "storage",
     "webRequest",
-    "webRequestBlocking",
+    //"webRequestBlocking",
+    "alarms"
+  ],
+  "host_permissions": [
     "ws://*/*", 
     "wss://*/*",
     "http://*/",
