@@ -1,2 +1,2 @@
-# EndavaPlugin
+# TaskMate Plugin
 Pluginul magic
