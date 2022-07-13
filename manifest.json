@@ -16,9 +16,9 @@
   },
 
   "lazyContentScripts": [
-      "page.js",
-      "inputDetector.js",
-      "hotProbeResponder.js"
+      "contentScripts/00-page.js",
+      "contentScripts/01-inputDetector.js",
+      "contentScripts/99-hotProbeResponder.js"
   ],
   "background": {
     "service_worker": "background.js"
