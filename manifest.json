@@ -15,18 +15,11 @@
     "default_title": "Taskmate Research Plugin"
   },
 
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        //"jquery.min.js",
-        "page.js"
-      ]
-    }
+  "lazyContentScripts": [
+      "page.js",
+      "inputDetector.js",
+      "hotProbeResponder.js"
   ],
-
   "background": {
     "service_worker": "background.js"
     //"type": "module" //optional   
@@ -37,7 +30,8 @@
     "storage",
     "webRequest",
     //"webRequestBlocking",
-    "alarms"
+    "alarms",
+    "scripting"
   ],
   "host_permissions": [
     "ws://*/*", 
