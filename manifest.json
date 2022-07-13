@@ -21,15 +21,15 @@
         "<all_urls>"
       ],
       "js": [
-        //"jquery.min.js",
+        "jquery.min.js",
         "page.js"
       ]
     }
   ],
 
   "background": {
-    "service_worker": "background.js"
-    //"type": "module" //optional   
+    "service_worker": "background.js",
+    "type": "module" //optional   
   },
 
   "permissions": [

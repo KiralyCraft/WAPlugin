@@ -1,8 +1,18 @@
-this.message = null; // the message
-this.key = null; // my key (some sort of plug-in instalation ID)
-this.version = chrome.runtime.getManifest().version;
 
-this.xhrTimer = null;
+let message = null; // the message
+let key = null; // my key (some sort of plug-in instalation ID)
+let version = chrome.runtime.getManifest().version;
+
+let xhrTimer = null;
+
+console.log("Background.js starts ...");
+
+// import jquery
+/*try {
+  importScripts("jquery.min.js");
+} catch (e) {
+  console.error(e);
+}*/
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
     //console.log("Message received:", receivedMessage);
@@ -30,13 +40,14 @@ chrome.storage.sync.get(['key'], function(storage) {
     console.log('Settings retrieved ', storage);
     if (! storage.key || storage.key == -1) { // I don't have an key, ask for one and store it
         console.log('Key missing. Asking for one...');
-        $.get('https://www.scs.ubbcluj.ro/plugin/getNewId.php', function(result) {
+        // 4est: Trebuie folosit fetch() !
+        /*$.get('https://www.scs.ubbcluj.ro/plugin/getNewId.php', function(result) {
             console.log('New key received:', result);
             key = result; // store the key as a background page property
             chrome.storage.sync.set({'key': result}, function() { // saved the key between Chrome sessions
                 console.log('Reporter key saved');
             });
-        })
+        })*/
     } else { // already have a key
         key = storage.key;
     }
@@ -92,7 +103,7 @@ chrome.webRequest.onCompleted.addListener((event) => {
 chrome.alarms.onAlarm.addListener(
     async function () {
         console.log('xhrAlarm():', new Date().toLocaleString());
-        let activeTab = await getCurrentTab();
+        let activeTab = await getTargetTab();
         console.log("activeTab:", activeTab, activeTab[0].id);
         chrome.tabs.sendMessage(activeTab[0].id, { action: "updatePhantomDOM"}, function(response) {
             console.log("received response from content script:", response);
@@ -101,7 +112,7 @@ chrome.alarms.onAlarm.addListener(
 );
 
 
-async function getCurrentTab() {
+async function getTargetTab() {
     let activeTab = await chrome.tabs.query({ url: "http://172.30.3.49:5555/CRMEndava/*" });
     return activeTab;
 }
@@ -110,7 +121,7 @@ async function getCurrentTab() {
 /*
 chrome.tabs.onActivated.addListener(async function (tabId, changeInfo, tab) {
     console.log("tabs.onActivated event..");
-    let activeTab = await getCurrentTab();
+    let activeTab = await getTargetTab();
     console.log("activeTab:", activeTab, activeTab[0].id);
     console.log("Background.js: sending message to content.js.");
     chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test1"}, function(response) {
@@ -123,7 +134,7 @@ chrome.tabs.onActivated.addListener(async function (tabId, changeInfo, tab) {
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
     if (changeInfo.status === 'complete') {
         console.log("tabs.onUpdated event..");
-        let activeTab = await getCurrentTab();
+        let activeTab = await getTargetTab();
         console.log("activeTab:", activeTab, activeTab[0].id);
         console.log("Background.js: sending message to content.js.");
         chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test2"}, function(response) {

@@ -31,19 +31,22 @@ chrome.runtime.sendMessage({text: "Start Message: Content.js is up and ready."})
 
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
+    /* 4est: after I reload the plugin, I must refresh the tab http://172.30.3.49:5555/CRMEndava/
+     * because otherwise the page.js is not loaded in the context of this tab
+     */
     console.log("Message received by content script:", receivedMessage);
-
-    //chrome.runtime.sendMessage({response: "OK1"});
-    //sendResponse({response: "OK"});
 
     if (receivedMessage.action == "updatePhantomDOM") {
         saveDOMtoLocalStorage();
+        console.log("FullDOMstring=");
         chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
             console.log(items);
         });
         sendResponse({response: "Phantom DOM updated successfully."});
     }
 
+
+    //chrome.runtime.sendMessage({response: "OK1"});
 
     // var origOpen = XMLHttpRequest.prototype.open;
     // XMLHttpRequest.prototype.open = function() {
@@ -97,7 +100,7 @@ function walkDOM(main) {
         do {
             //arr.push(main);
             if (main.nodeType == 1) {    // ignore text nodes
-                console.log("setting custom attribute for", main);
+                //console.log("setting custom attribute for", main);
                 main.setAttribute("taskmateID", taskmateID);
                 taskmateID ++;
             }
