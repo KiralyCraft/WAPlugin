@@ -43,16 +43,16 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 	}
 	else if (receivedMessage.action == "action_popup_visible")
 	{
-		var toRespond = 
-		[
-			{
-				action:"action_popup_ui_detect_result",
-				data:"potato"
-			}
-		];
-		sendResponse(toRespond);
+// 		var toRespond = 
+// 		[
+// 			{
+// 				action:"action_popup_ui_detect_result",
+// 				data:"potato"
+// 			}
+// 		];
+// 		sendResponse(toRespond);
 	}
-	else
+	else if (receivedMessage.action !== "action_popup_injectors_probe_reply") //Avoid replying to this, because the hotProbeResponder will.
 	{
 		sendResponse({response: "Unhandled message in the page context."});
 	}
