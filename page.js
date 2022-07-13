@@ -25,49 +25,37 @@ $(document).ready(function () {
 });
 */
 
-console.log("Start of content.js.");
+console.log("Start of content.js ");
 
 chrome.runtime.sendMessage({text: "Start Message: Content.js is up and ready."});
 
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
-    console.log("Message received by content script:", receivedMessage);
-
-    //chrome.runtime.sendMessage({response: "OK1"});
-    //sendResponse({response: "OK"});
-
-    if (receivedMessage.action == "updatePhantomDOM") {
-        saveDOMtoLocalStorage();
-        chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
-            console.log(items);
-        });
-        sendResponse({response: "Phantom DOM updated successfully."});
-    }
-
-
-    // var origOpen = XMLHttpRequest.prototype.open;
-    // XMLHttpRequest.prototype.open = function() {
-    //     console.log('Ajax request started!');
-    //     this.addEventListener('load', function() {
-    //         console.log('Ajax request completed!');
-    //         console.log('Ajax request ready state: ' + this.readyState);
-    //         console.log('Ajax request response from the server: ' + this.responseText);
-    //     });
-    //     origOpen.apply(this, arguments);
-    // };
-
-    // $(document).ajaxSuccess(
-    //     function(event, xhr, settings){
-    //         console.log('Ajex call: ' + xhr.responseText);
-    //     }
-    // );
-
-    // $.ajaxSetup({
-    //     beforeSend: function() {
-    //         //do stuff before request fires
-    //         console.log('It works!');
-    //     }
-    // });
+	console.log("Page.js: Message received by content script:", receivedMessage);
+	
+	if (receivedMessage.action == "updatePhantomDOM") 
+	{
+		saveDOMtoLocalStorage();
+		chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
+			console.log(items);
+		});
+		sendResponse({response: "Phantom DOM updated successfully."});
+	}
+	else if (receivedMessage.action == "action_popup_visible")
+	{
+		var toRespond = 
+		[
+			{
+				action:"action_popup_ui_detect_result",
+				data:"potato"
+			}
+		];
+		sendResponse(toRespond);
+	}
+	else
+	{
+		sendResponse({response: "Unhandled message in the page context."});
+	}
 });
 
 
