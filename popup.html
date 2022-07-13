@@ -1,40 +1,64 @@
 <!doctype html>
 <!--
- This page is shown when the extension button is clicked, because the
- "browser_action" field in manifest.json contains the "default_popup" key with
- value "popup.html".
- -->
+This page is shown when the extension button is clicked, because the
+"browser_action" field in manifest.json contains the "default_popup" key with
+value "popup.html".
+-->
 <html>
-  <head>
-    <title>Plugin's popup</title>
-    <style>
-      body {
-        font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
-        /*font-size: 100%;*/
-        /*background-color: deeppink;*/
-      }
-      #plugin {
-        /* avoid an excessively wide status text */
-        white-space: pre;
-        /*text-overflow: ellipsis;*/
-        overflow: hidden;
-        max-width: 500px;
-      }
-    </style>
+<head>
+	<title>Taskmate Research Feedback Window</title>
+	<style>
+	body {
+		font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
+		/*font-size: 100%;*/
+		/*background-color: deeppink;*/
+	}
+	#plugin {
+		/* avoid an excessively wide status text */
+		white-space: pre;
+		/*text-overflow: ellipsis;*/
+		overflow: hidden;
+		max-width: 500px;
+	}
+	table, th, td 
+	{
+		border: 1px solid black;
+		text-align: center;
+	}
+	body 
+	{
+		min-width:300px;
+	}
+	</style>
 
-    <!--
-      - JavaScript and HTML must be in separate files: see our Content Security
-      - Policy documentation[1] for details and explanation.
-      -
-      - [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
-     -->
-     <script src="jquery.min.js"></script>
-     <script src="popup.js"></script>
-  </head>
-  <body>
-  <div id="plugin">
-    <div id="hello"></div>
-    <div id="debug"></div>
-  </div>
-  </body>
+	<!--
+	- JavaScript and HTML must be in separate files: see our Content Security
+	- Policy documentation[1] for details and explanation.
+	-
+	- [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
+	-->
+	<script src="jquery.min.js"></script>
+	<script src="popup.js"></script>
+</head>
+<body>
+<div id="plugin">
+	<div id="inputList">
+	<table style="width:100%">
+		<caption>Detected inputs</caption>
+		<tr>
+			<th>Type</th>
+			<th>Position</th>
+			<th>Anchor</th>
+		</tr>
+		<tbody id="inputListTable">
+		<tr>
+			<td>Button</td>
+			<td><button style="width:100%">Show</button></td>
+			<td>Y</td>
+		</tr>
+		</tbody>
+	</table>
+	</div>
+</div>
+</body>
 </html>
