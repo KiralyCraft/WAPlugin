@@ -79,9 +79,14 @@ function handlePopupVisible()
 	return [{action:'action_inputdetect_preview',data:intermediaryArray}];
 }
 
+/*
+ * Handles the actual highlighting of the element indicated by the index provided as argument.
+ */
 function handleElementShow(theData)
 {
-	console.log(theData);
+	var theActualElement = lastDetectionIteration[theData];
+	
+	theActualElement.style.outline = '#f00 solid 4px';
 }
 
 ////////////////////HELPERS///////////////////////////
