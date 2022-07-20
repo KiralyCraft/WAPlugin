@@ -13,14 +13,70 @@ const CONTENT_PAGE_GREETS =
 	"action_popup_visible_inputdetect" 
 ]
 
+////////// UI OPEREATIONS /////////
+
+/*
+ *	Builds a DOM element, where three arguments are required by default. These arguments can either be DOM elements of their own, or strings.
+ */
+function buildUIEntry(theType,theButton,theAnchor)
+{
+	var theRow = document.createElement('tr');
+	
+	var theArray = [theType,theButton,theAnchor];
+	
+	for (var theIterator in theArray)
+	{
+		var theTypeElement = document.createElement('td');
+		theArrayElement = theArray[theIterator];
+		
+		if (typeof(theArrayElement) === 'string')
+		{
+			theTypeElement.innerHTML = theArrayElement;
+		}
+		else
+		{
+			theTypeElement.appendChild(theArrayElement);
+		}
+		theRow.appendChild(theTypeElement);
+	}
+	
+	return theRow;
+}
+
+/*
+ *	Builds a clickable button that will call the provided function with the given index (identifier).
+ */
+function buildUIButtonCallback(theFunction,buttonIndex)
+{
+	var theButton = document.createElement('button');
+	theButton.style = 'width:100%';
+	theButton.innerHTML = "Show";
+	theButton.onclick = function(){theFunction(buttonIndex);}
+	
+	return theButton;
+}
+
+///////////////////////////////////
+
+function handleUIButtonCallback(buttonIndex)
+{
+	console.log(buttonIndex);
+}
 /*
  * Handles scenarios for various actions indicated by the content page or background script.
  */
 function handleContentResponse(responseAction, responseData)
 {
+	
 	if (responseAction == "action_inputdetect_preview")
 	{
-		
+		for (var theElementIterator in responseData)
+		{
+			var theElement = responseData[theElementIterator];
+			
+			var theInputList = document.getElementById("inputListTable");
+			theInputList.appendChild(buildUIEntry(theElement,buildUIButtonCallback(handleUIButtonCallback,theElementIterator),"N/A"));
+		}
 	}
 }
 
