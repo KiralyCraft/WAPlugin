@@ -56,12 +56,21 @@ function buildUIButtonCallback(theFunction,buttonIndex)
 	return theButton;
 }
 
-///////////////////////////////////
+/////////// HANDLERS //////////////
 
+/*
+ *	The callback that gets executed when a button is pressed from the list of detected inputs. It is implicitely referred by the button builder routine.
+ */
 function handleUIButtonCallback(buttonIndex)
 {
-	console.log(buttonIndex);
+	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+		chrome.tabs.sendMessage(tabs[0].id, {action: 'action_inputdetect_show', data: buttonIndex}, function(theResponse) 
+		{
+			//A response is not expected
+		});
+	});
 }
+
 /*
  * Handles scenarios for various actions indicated by the content page or background script.
  */

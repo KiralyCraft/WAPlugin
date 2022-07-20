@@ -20,6 +20,9 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 		case "action_popup_visible_inputdetect":
 			sendResponse(handlePopupVisible(sendResponse));
 			break;
+		case "action_inputdetect_show":
+			handleElementShow(receivedMessage.data);
+			break;
 	}
 })
 
@@ -74,6 +77,11 @@ function handlePopupVisible()
 	}
 	
 	return [{action:'action_inputdetect_preview',data:intermediaryArray}];
+}
+
+function handleElementShow(theData)
+{
+	console.log(theData);
 }
 
 ////////////////////HELPERS///////////////////////////
