@@ -1,19 +1,34 @@
 const GREET_BACKGROUND_PAGE = false;
 const GREET_CONTENT_PAGE = true;
 
+const CONTENT_PAGE_GREETS = 
+[
+	/*
+	 * Notification-like message for all content scripts
+	 */
+	"action_popup_visible",
+	/*
+	 * Specially-crafted greet for the plain input detector
+	 */
+	"action_popup_visible_inputdetect" 
+]
+
 /*
  * Handles scenarios for various actions indicated by the content page or background script.
  */
 function handleContentResponse(responseAction, responseData)
 {
-	console.log(responseAction);
-	console.log(responseData);
+	if (responseAction == "action_inputdetect_preview")
+	{
+		
+	}
 }
 
 /*
  *	This method checks if the current tab responds to any messages sent from the plugin, since they are not loaded by a content-script.
+ * 	It calls the callback with a boolean argument, depending on whether the injectors were loaded when the probe was called.
  */
-function probeInjectors()
+function probeInjectors(callbackSuccess)
 {
 	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
 		chrome.tabs.sendMessage(tabs[0].id, {action: "action_popup_injectors_probe"}, function(theResponse) 
@@ -25,10 +40,12 @@ function probeInjectors()
 			{
 				console.log("Injectors are not loaded. Loading them now.");
 				buildInjectors();
+				callbackSuccess(false);
 			} 
 			else if (theResponse.action == "action_popup_injectors_probe_reply")
 			{
 				console.log("Injectors are loaded, we're good");
+				callbackSuccess(true);
 			}
 		});
 	});
@@ -76,13 +93,17 @@ function buildPluginUI()
 	if (GREET_CONTENT_PAGE)
 	{
 		chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-			chrome.tabs.sendMessage(tabs[0].id, {action: "action_popup_visible"}, function(theResponse) 
-			{
-				for (var responseEntry in theResponse)
+			
+			for (var greetIterator in CONTENT_PAGE_GREETS)
+			{				
+				chrome.tabs.sendMessage(tabs[0].id, {action: CONTENT_PAGE_GREETS[greetIterator]}, function(theResponse) 
 				{
-					handleContentResponse(theResponse[responseEntry].action,theResponse[responseEntry].data);
-				}
-			});
+					for (var responseEntry in theResponse)
+					{
+						handleContentResponse(theResponse[responseEntry].action,theResponse[responseEntry].data);
+					}
+				});
+			}
 		});
 	}
 }
@@ -91,7 +112,16 @@ function buildPluginUI()
  * Called when the document 
  */
 document.addEventListener("DOMContentLoaded", function(event) { 
-	probeInjectors();
-	//buildInjectors(); //Don't always force the building of injectors, because they may already be injected
-	buildPluginUI();
+	probeInjectors(function(successStatus)
+	{
+		if (successStatus)
+		{
+			buildPluginUI();
+		}
+		else
+		{
+			console.log("Please reopen the popup window. The page is now injected.");
+		}
+	});
+	//buildInjectors(); //Don't always force the building of injectors, because they may already be present
 });

@@ -1,8 +1,10 @@
 /*
  * This variable defines fields and attributes to look after
  */
-const staticSearchFields = 
+const STATIC_SEARCH_FIELDS = 
 {
+	"a":{},
+	"button":{},
 	"input":{},
 	"form":
 	{
@@ -11,36 +13,68 @@ const staticSearchFields =
 	
 }
 
-var detectedFields = [];
-
-for (var searchedType in staticSearchFields) 
+chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) 
 {
-	//Skip la cheia asta daca nu e definita de obiectul in sine
-	if (!staticSearchFields.hasOwnProperty(searchedType)) continue;
-	
-	var searchedTypeAttributes = staticSearchFields[searchedType];
-	
-	var searchedTypeAttrLength = Object.keys(searchedTypeAttributes).length; //May not be implemented in all browesrs
-	
-	//... = merge arrays
-	if (searchedTypeAttrLength > 0)
+	switch(receivedMessage.action)
 	{
-		for (var searchedAttribute in searchedTypeAttributes) 
+		case "action_popup_visible_inputdetect":
+			sendResponse(handlePopupVisible(sendResponse));
+			break;
+	}
+})
+
+///////// GLOBAL VARS //////////
+var lastDetectionIteration;
+////////////////////////////////
+/*
+ * Runs the static detection algorithm. It looks for the items specified in STATIC_SEARCH_FIELDS
+ */
+function runStaticDetection()
+{
+	var detectedFields = [];
+
+	for (var searchedType in STATIC_SEARCH_FIELDS) 
+	{
+		//Skip la cheia asta daca nu e definita de obiectul in sine
+		if (!STATIC_SEARCH_FIELDS.hasOwnProperty(searchedType)) continue;
+		
+		var searchedTypeAttributes = STATIC_SEARCH_FIELDS[searchedType];
+		
+		var searchedTypeAttrLength = Object.keys(searchedTypeAttributes).length; //May not be implemented in all browesrs
+		
+		//... = merge arrays
+		if (searchedTypeAttrLength > 0)
 		{
-			var searchedAttributeValue = searchedTypeAttributes[searchedAttribute];
-			console.log("//"+searchedType+'[@'+searchedAttribute+'="'+searchedAttributeValue+'"]');
-			detectedFields.push(...getElementByXpath("//"+searchedType+'[@'+searchedAttribute+'="'+searchedAttributeValue+'"]')); 
+			for (var searchedAttribute in searchedTypeAttributes) 
+			{
+				var searchedAttributeValue = searchedTypeAttributes[searchedAttribute];
+				detectedFields.push(...getElementByXpath("//"+searchedType+'[@'+searchedAttribute+'="'+searchedAttributeValue+'"]')); 
+			}
+		}
+		else
+		{
+			detectedFields.push(...getElementByXpath("//"+searchedType)); 
 		}
 	}
-	else
-	{
-		detectedFields.push(...getElementByXpath("//"+searchedType)); 
-	}
+	return detectedFields;
 }
 
-console.log(detectedFields);
-
-
+/*
+ * Handles the event when the popup is visible and has established communication with this script. 
+ * Sending a response here will reach the popup script directly
+ */
+function handlePopupVisible()
+{
+	lastDetectionIteration = runStaticDetection();
+	var intermediaryArray = [];
+	
+	for (var intermediaryArrayIterator in lastDetectionIteration)
+	{
+		intermediaryArray.push(lastDetectionIteration[intermediaryArrayIterator].nodeName);
+	}
+	
+	return [{action:'action_inputdetect_preview',data:intermediaryArray}];
+}
 
 ////////////////////HELPERS///////////////////////////
 /*
