@@ -87,6 +87,8 @@ function handleElementShow(theData)
 	var theActualElement = lastDetectionIteration[theData];
 	
 	theActualElement.style.outline = '#f00 solid 4px';
+	
+	theActualElement.scrollIntoView();
 }
 
 ////////////////////HELPERS///////////////////////////
