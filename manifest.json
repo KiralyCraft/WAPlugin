@@ -22,11 +22,11 @@
       ],
       "js": [
         "jquery.min.js",
+        "datamodel-spec.js",
         "page.js"
       ]
     }
   ],
-
   "background": {
     "service_worker": "background.js",
     "type": "module" //optional   

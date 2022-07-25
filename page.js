@@ -1,3 +1,5 @@
+
+
 // send a message to the background page containing whatever message (even an object)
 
 /*function sendMessage(message) {
@@ -25,9 +27,10 @@ $(document).ready(function () {
 });
 */
 
-console.log("Start of content.js.");
+console.log("Start of page.js pentru Alex.");
+console.log(DataModel);
 
-chrome.runtime.sendMessage({text: "Start Message: Content.js is up and ready."});
+//chrome.runtime.sendMessage({text: "Start Message: Content.js is up and ready."});
 
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
@@ -37,11 +40,13 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     console.log("Message received by content script:", receivedMessage);
 
     if (receivedMessage.action == "updatePhantomDOM") {
+        detectDOMDifference();
         saveDOMtoLocalStorage();
-        console.log("FullDOMstring=");
-        chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
-            console.log(items);
-        });
+        // Log FullDOMstring on console
+        // console.log("FullDOMstring=");
+        // chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
+        //    console.log(items);
+        // });
         sendResponse({response: "Phantom DOM updated successfully."});
     }
 
@@ -78,19 +83,32 @@ function saveDOMtoLocalStorage() {
       //let fullDOM = document.body.innerHTML;
       // consider only the DOM of the iframe:
       let fullDOM = window.frames[0].document.body.innerHTML;
-      
+      let innerText = window.frames[0].document.body.innerText;
 
       let FullDOMstring = JSON.stringify(fullDOM);
-      console.log("FullDOMstring:", FullDOMstring);
+      console.log("FullDOMstring (as string):", FullDOMstring);
 
+      console.log("FullDOMstring (as JSON):", fullDOM);
+      
       // save DOM string to local storage
       chrome.storage.local.set({ "FullDOMstring": FullDOMstring }, function(){} );
-
-
+      
       // give each tag element TaskMate custom attributes
       walkDOM(document.body);
 }
 
+function detectDOMDifference() {
+    let fullDOM = window.frames[0].document.body.innerHTML;
+    let innerText = window.frames[0].document.body.innerText;
+    let textContent = getInnerTextElements(window.frames[0].document.body);
+    
+    console.log(innerText);
+
+
+    // detect concepts in inner text content
+    let detectedConcept = detectConcept(innerText);
+    console.log("Concept detected: ", detectedConcept);
+}
 
 function walkDOM(main) {
     //var arr = [];
@@ -114,3 +132,36 @@ function walkDOM(main) {
     //return arr;
 }
 
+function getInnerTextElements(root) {
+    let textNodes = []
+    root.querySelectorAll("*").forEach(function(item) {
+        //console.log(item.children.length,item.childNodes.length,item);
+        if ((item.children.length==0) && (item.childNodes.length==1)
+            && (item.tagName != "SCRIPT") && (item.innerText.trim().length >0)) {
+            console.log(item.children.length,item.childNodes.length,item.innerText,item);
+            textNodes.push(item.innerText);
+        }
+    })
+    console.log("textNodes=", textNodes);
+    return textNodes;
+}
+
+
+function detectConcept(text) {
+    let detectedConcept = "";
+
+    for (concept in DataModel) { 
+        console.log(concept, DataModel[concept]);
+        let occurences = 0;
+        for (property of DataModel[concept]) {
+            if (text.includes(property)) occurences++;
+            console.log(property, occurences);
+        };
+        console.log("occurences=", occurences, " noOfProperties=", DataModel[concept].length);
+        if (occurences==DataModel[concept].length) {
+            detectedConcept = concept;
+        }
+    }
+
+    return detectedConcept;
+};

@@ -68,9 +68,11 @@ const networkFilters = {
 
 // 4est: HTTP requests logger
 chrome.webRequest.onCompleted.addListener((event) => {
-    console.log("new event=", event);
-    console.log("new HTTP Request: \ntype=" + event.type + "\nurl=" + event.url + 
-        "\nmethod=" + event.method + "\ninitiator=" + event.initiator);
+    if (event.type=="xmlhttprequest") {
+        console.log("new event=", event);
+        console.log("new HTTP Request: \ntype=" + event.type + "\nurl=" + event.url + 
+            "\nmethod=" + event.method + "\ninitiator=" + event.initiator);
+    }
 
     // settimeout() does not work in Chrome extensions
     /*clearTimeout(this.xhrTimer);
