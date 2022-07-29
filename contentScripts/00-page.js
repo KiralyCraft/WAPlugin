@@ -34,23 +34,12 @@ console.log(DataModel);
 
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
+
     /* 4est: after I reload the plugin, I must refresh the tab http://172.30.3.49:5555/CRMEndava/
      * because otherwise the page.js is not loaded in the context of this tab
      */
     console.log("Message received by content script:", receivedMessage);
-
-    if (receivedMessage.action == "updatePhantomDOM") {
-        detectDOMDifference();
-        saveDOMtoLocalStorage();
-        // Log FullDOMstring on console
-        // console.log("FullDOMstring=");
-        // chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
-        //    console.log(items);
-        // });
-        sendResponse({response: "Phantom DOM updated successfully."});
-    }
-
-
+    
     //chrome.runtime.sendMessage({response: "OK1"});
 
     // var origOpen = XMLHttpRequest.prototype.open;
@@ -76,6 +65,29 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     //         console.log('It works!');
     //     }
     // });
+	
+    if (receivedMessage.action == "updatePhantomDOM") {
+        detectDOMDifference();
+        saveDOMtoLocalStorage();
+        // Log FullDOMstring on console
+        // console.log("FullDOMstring=");
+        // chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
+        //    console.log(items);
+        // });
+        sendResponse({response: "Phantom DOM updated successfully."});
+    }
+	else if (receivedMessage.action == "action_popup_visible")
+	{
+        //Do not handle
+	}
+	else if (receivedMessage.action == "action_popup_visible_inputdetect")
+	{
+        //Do not handle
+	}
+	else if (receivedMessage.action == "action_popup_injectors_probe_reply")
+    {
+        //Avoid replying to this, because the hotProbeResponder will.
+    }
 });
 
 

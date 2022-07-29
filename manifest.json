@@ -22,10 +22,13 @@
       ],
       "js": [
         "jquery.min.js",
-        "datamodel-spec.js",
-        "page.js"
+        "datamodel-spec.js"
       ]
-    }
+    }],
+  "lazyContentScripts": [
+      "contentScripts/00-page.js",
+      "contentScripts/01-inputDetector.js",
+      "contentScripts/99-hotProbeResponder.js"
   ],
   "background": {
     "service_worker": "background.js",
@@ -37,7 +40,8 @@
     "storage",
     "webRequest",
     //"webRequestBlocking",
-    "alarms"
+    "alarms",
+    "scripting"
   ],
   "host_permissions": [
     "ws://*/*", 
