@@ -41,7 +41,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     console.log("Message received by content script:", receivedMessage);
     
     //chrome.runtime.sendMessage({response: "OK1"});
-
+    
     // var origOpen = XMLHttpRequest.prototype.open;
     // XMLHttpRequest.prototype.open = function() {
     //     console.log('Ajax request started!');

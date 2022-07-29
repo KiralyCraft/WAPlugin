@@ -15,20 +15,12 @@
     "default_title": "Taskmate Research Plugin"
   },
 
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "jquery.min.js",
-        "datamodel-spec.js"
-      ]
-    }],
   "lazyContentScripts": [
+      "contentScripts/00-datamodel-spec.js",
+      "contentScripts/00-jquery.min.js",
       "contentScripts/00-page.js",
       "contentScripts/01-inputDetector.js",
-      "contentScripts/99-hotProbeResponder.js"
+      "contentScripts/99-hotProbeResponder.js"      
   ],
   "background": {
     "service_worker": "background.js",
