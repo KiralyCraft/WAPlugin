@@ -1,0 +1,75 @@
+
+Tipuri de noduri de navgare:
+- noduri de inceput, de nivel superior (nivel 3): noduri de tip meniu care duc la documente web 
+care contin elemente clickabile care duc spre concepte
+- noduri intermediare de legatura (nivel 2) : un nod care duce de la un nod de inceput sau
+nod intermediar de legatura spre un nod (aceste noduri spre deosebire de nodurile de nivel 1
+nu sunt legate de nici un concept)
+- noduri intermediare pre-frunza (nivel 1) : care sunt legate de un concept; acestea sunt de doua tipuri
+        o noduri care duc la un concept general (e.g. buton de INSERT pentru o entitate,
+        buton se SELECT ALL pentru o entitate)
+        o noduri care sunt legate de entitati specifice (e.g. buton/link de UPDATE pentru
+        editare o instanta specifica, buton/link de DELETE pentru delete o instanta specifica, 
+        buton/link de SELECT o instanta specifica) 
+        IMPORTANT: aici vor fi mai multe noduri legate de entitati de obicei aceste noduri/linkuri 
+        sunt afisate intr-un tabel (sau lista de Issue-uri in cazul Jira), cate o entitate pe 
+        linie; trebuie sa fie salvat/reprezentat un singur nod generic (link, buton) pentru toate 
+        aceste linii de tabel/lista si trebuie cumva identificata entitatea corespunzatoare 
+        (probabil valorile textuale afisate in linia respectiva, iar aceste valori de atribute 
+        trebuie asociate cu nume de atribute din capul de tabel)
+- noduri frunza (nivel 0) : un concept (tabel) sau o entitate a unui concept (row/record din tabel)
+plus o operatie (SELECT ALL, SELECT, INSERT, UPDATE, DELETE)
+
+
+Un segment de harta cu noduri de mai sus este urmatorul:
+Nod3 -> Nod2 -> Nod2 -> ... -> Nod2 -> Nod1 -> Nod0
+Nod3 -> Nod1 -> Nod0
+
+====================================================================================================
+
+
+ID-uri unice pentru butoane/link-uri:
+- generate din requesturi XHR
+        o PRO : ar trebui sa identifice acelasi buton in mai multe pagini web
+        o CONS : in cazul Microsoft CRM sunt mari cererile (Microsoft Dynamics 365 nu foloseste
+        cereri XHR ci websockets); oricum, numai cu cererea XHR, robotul nu poate genera contentul
+        decat greu fara DOM - i.e. robotul tot trebuie sa trimita cererea XHR la server direct din DOM
+- generate din DOM  (complet) : calea completa spre tagul top level al sectiunii de DOM updatata (i.e.
+cea care nu are atributul custom "taskmateID") - pare OK.
+- generate din DOM (ancora ca la UiPath) : trebuie ales manual de user, nu e destul de robust
+
+====================================================================================================
+
+
+Deocamdata ignoram operatiile SELECT ALL si DELETE si consideram doar SELECT, INSERT, UPDATE.
+Algoritm de detectie si reprezentare a unui block primar de navigare cu 2 componente de tipul: 
+[Nod pre-frunza] -> [Nod frunza]
+unde [Nod frunza] = [Concept : Operatie], Operatie = {SELECT, INSERT, UPDATE}
+si [Nod pre-frunza] = ID-ul buton/link care duce la nodul frunza. Acest ID reprezinta
+calea (path) in DOM de la buton/link pana la tagul html de cel mai inalt nivel din DOM-ul din
+care face parte butonul/linkul, DOM care a fost updatat in urma unei operatii pe UI
+(i.e. DOM-ul care cuprinde taguri fara atributul custom "taskmateID"; daca toate tagurile
+nu au acest atribut custom, deci suntem pe pagina html principala, atunci path-ul merge pana
+la <body>).
+Algoritmul este urmatorul:
+1) Utilizatorul uman face click pe buton/link-ul respectiv
+2) Un hook ajuta pluginul sa se prinda, dupa ce detecteaza o cerere XHR, care buton/click 
+a fost apasat de catre utilizatorul uman
+3) Pluginul retine reprezentarea (path in DOM) a nodului pre-frunza de la punctul 2)
+4) Dupa alarm-ul de 1 minut rezultat in urma cererilor XHR, plugin-ul cauta conceptul
+(i.e. atributele lui) in DOM-ul updatat [asta s-a implementat deja in sprintul precedent].
+Asa se detecteaza conceptul
+5) Pentru detectia operatiei (SELECT, INSERT, UPDATE), pluginul face urmatoarele:
+- acolo unde detecteaza un atribut textual al conceptului in DOM (acest atribut va fi un label),
+trebuie sa gasim si un "<input type=text>" in apropierea acestul atribut textual (i.e.
+text inputul legat de acest label); tag-ul de input va trebui cautat intr-un cerc in jurul
+acestui label in documentul randat in browser (de obicei inputul se va afta in dreapta label-ului,
+in aceeasi linie); detectam astfel toate input-urile sau text area sau select-urile asociate
+fiecarui atribut textual al conceptului detectat.
+- daca nu gasim nici un astfel de control de input (e.g. input type text, text area, select),
+inseamna ca operatia este SELECT.
+- daca gasim controale de input si daca aceste input-uri nu au valoare (sunt goale), operatia este INSERT
+- altfe, daca cel putin un astfel de input are valoare, operatia e UPDATE
+
+====================================================================================================
+
