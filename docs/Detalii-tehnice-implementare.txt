@@ -3,7 +3,7 @@ Tipuri de noduri de navgare:
 - noduri de inceput, de nivel superior (nivel 3): noduri de tip meniu care duc la documente web 
 care contin elemente clickabile care duc spre concepte
 - noduri intermediare de legatura (nivel 2) : un nod care duce de la un nod de inceput sau
-nod intermediar de legatura spre un nod (aceste noduri spre deosebire de nodurile de nivel 1
+nod intermediar de legatura spre un nod pre-frunza (aceste noduri spre deosebire de nodurile de nivel 1
 nu sunt legate de nici un concept)
 - noduri intermediare pre-frunza (nivel 1) : care sunt legate de un concept; acestea sunt de doua tipuri
         o noduri care duc la un concept general (e.g. buton de INSERT pentru o entitate,
@@ -53,13 +53,13 @@ nu au acest atribut custom, deci suntem pe pagina html principala, atunci path-u
 la <body>).
 Algoritmul este urmatorul:
 1) Utilizatorul uman face click pe buton/link-ul respectiv
-2) Un hook ajuta pluginul sa se prinda, dupa ce detecteaza o cerere XHR, care buton/click 
+*2) Un hook ajuta pluginul sa se prinda, dupa ce detecteaza o cerere XHR, care buton/click 
 a fost apasat de catre utilizatorul uman
-3) Pluginul retine reprezentarea (path in DOM) a nodului pre-frunza de la punctul 2)
+*3) Pluginul retine reprezentarea (path in DOM) a nodului pre-frunza de la punctul 2)
 4) Dupa alarm-ul de 1 minut rezultat in urma cererilor XHR, plugin-ul cauta conceptul
 (i.e. atributele lui) in DOM-ul updatat [asta s-a implementat deja in sprintul precedent].
 Asa se detecteaza conceptul
-5) Pentru detectia operatiei (SELECT, INSERT, UPDATE), pluginul face urmatoarele:
+*5) Pentru detectia operatiei (SELECT, INSERT, UPDATE), pluginul face urmatoarele:
 - acolo unde detecteaza un atribut textual al conceptului in DOM (acest atribut va fi un label),
 trebuie sa gasim si un "<input type=text>" in apropierea acestul atribut textual (i.e.
 text inputul legat de acest label); tag-ul de input va trebui cautat intr-un cerc in jurul
