@@ -13,6 +13,7 @@ const CONTENT_PAGE_GREETS =
 	"action_popup_visible_inputdetect" 
 ]
 
+
 ////////// UI OPEREATIONS /////////
 
 /*
@@ -192,25 +193,33 @@ document.addEventListener("DOMContentLoaded", function(event) {
 });
 
 
-
-function onClickHandle_processDOMDifferenceButton() {
+document.querySelector('#processDOMDifferenceButton').addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_processDOMDifference'}, 
-                                function(response) {});
+            function(responseMessage) {
+                console.log("RESPONSE:", responseMessage);
+                if (responseMessage.response == "message_page_popup_primaryNavigationBlockDetected") {
+                    //const preLeafNode = responseMessage.preLeafNode.split("|");
+                    //const preLeafNode = responseMessage.preLeafNode;
+                    document.querySelector("#navigationMap").innerHTML = 
+                        "<p>[" + "preLeafNode" + "] -> [Concept: " + responseMessage.concept + ", Operation: " + 
+                        responseMessage.operation + "]</p>";
+                }
+        });
     });
-}
-        
-function onClickHandle_undoHighlightInputsButton() {
+});
+
+document.querySelector('#undoHighlightInputsButton').addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_undoHighlightInputs'}, 
                                 function(response) {});
     });
-}
-
-document.querySelector('#processDOMDifferenceButton').addEventListener('click', function() {
-       onClickHandle_processDOMDifferenceButton();
 });
 
-document.querySelector('#undoHighlightInputsButton').addEventListener('click', function() {
-       onClickHandle_undoHighlightInputsButton();
+document.querySelector('#undoHighlightTextInputAssociationsButton').addEventListener('click', function() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_undoHighlightTextInputElemAssociations'}, 
+                                function(response) {});
+    });
 });
+

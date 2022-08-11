@@ -7,11 +7,12 @@ value "popup.html".
 <html>
 <head>
 	<title>Taskmate Research Feedback Window</title>
+	<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Jura">
 	<style>
 	body {
-		font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
-		/*font-size: 100%;*/
-		/*background-color: deeppink;*/
+		/*font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;*/
+		font-family: 'Jura', sans-serif;
+		text-align: justify;
 	}
 	#plugin {
 		/* avoid an excessively wide status text */
@@ -32,6 +33,11 @@ value "popup.html".
 	#primaryBlocksOperations {
 		border-bottom: 1px solid blue;
 	}
+	#navigationMap {
+		border: 1px solid blue;
+		border-radius:  4px;
+		color: #3355ff;
+	}
 	button {
 		border-radius:  2px;
 		border:  1px solid blue;
@@ -45,9 +51,10 @@ value "popup.html".
 <div id="plugin">
 	<div id="primaryBlocksOperations">
 		<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/>
-		<button id="undoHighlightInputsButton">Undo highlight Input nodes</button>
+		<button id="undoHighlightInputsButton">Undo highlight Input nodes</button><br/>
+		<button id="undoHighlightTextInputAssociationsButton">Undo highlight Text-Input link</button>
 	</div>
-
+	<div id="navigationMap"></div>
 	<div id="inputList">
 	<table style="width:100%">
 		<caption>Detected inputs</caption>

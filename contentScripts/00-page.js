@@ -45,7 +45,10 @@ window.frames[0].document.addEventListener('click', function(event) {
     if (event.type == "click") {
         // save target ID to local storage
         //chrome.storage.local.set({ "ClickedElementID": event.target }, function(){} );
-        chrome.storage.local.set({ "ClickedElementID": event.path }, function(){} );
+        chrome.storage.local.set(
+            {"ClickedElementID": SerializeDOMPath(window.frames[0].document.body, event.path)}, 
+            function(){} 
+        );
         console.log("ClickEvent detected, target=", event.path);
     }
 });
@@ -103,10 +106,26 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         sendResponse({response: "message_page_background_updatePhantomDOM",
             result : "Phantom DOM updated successfully."});
     } else if (receivedMessage.request == "message_popup_page_processDOMDifference") {
-        console.log("Message message_popup_page_processDOMDifference received. Running processDOMDifference() ...");
-        processDOMDifference();
+        console.log("Running processDOMDifference() ...");
+        let detectedConceptOperation = processDOMDifference();
+        var node = null;
+        chrome.storage.local.get(["ClickedElementID"], function(item) {
+            console.log("Data saved in chrome.storage.local:",item);
+            node = item;
+            console.log("node:", node);
+            // TODO: a se muta in afara acestui block cu async
+            //sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
+            //        preLeafNode: node, concept : detectedConceptOperation.concept, 
+            //        operation: detectedConceptOperation.operation});
+        });
+        console.log("****node:", node);
+        sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
+            preLeafNode: node, concept : detectedConceptOperation.concept, 
+            operation: detectedConceptOperation.operation});
     } else if (receivedMessage.request == "message_popup_page_undoHighlightInputs") {
         undoHighlightInputElements();
+    } else if (receivedMessage.request == "message_popup_page_undoHighlightTextInputElemAssociations") {
+        undoHighlightTextInputElemAssociations(window.frames[0].document); 
     } else if (receivedMessage.action == "action_popup_visible") {
         //Do not handle
 	} else if (receivedMessage.action == "action_popup_visible_inputdetect") {
@@ -151,15 +170,16 @@ function processDOMDifference() {
 
     textElementsWithInputs = getAssociatedInputElements(window.frames[0].document.body, textElements);
     
-    highlightTextInputElemAssociations();
+    highlightTextInputElemAssociations(window.frames[0].document);
 
     console.log("innerText: ", innerText);
     // detect concepts in inner text content
-    let detectedConcept = detectConcept(innerText);
-    console.log("Concept detected: ", detectedConcept);
-
-    // detect operation on concept/entity
-    let operation = detectOperation(window.frames[0].document.body);
+    //let detectedConcept = detectConcept(innerText);
+    //console.log("Concept detected: ", detectedConcept);
+    // detect concept and operation on concept/entity
+    let detectedConceptOperation = detectConceptAndOperation(textElementsWithInputs);
+    console.log("Concept detected: ", detectedConceptOperation);
+    return detectedConceptOperation;
 }
 
 function walkDOM(main) {
@@ -304,6 +324,67 @@ function detectConcept(text) {
     return detectedConcept;
 };
 
+function detectConceptAndOperation(textElementsWithInputs) {
+    /* Pentru detectia operatiei (SELECT, INSERT, UPDATE), pluginul face urmatoarele:
+     * -- acolo unde detecteaza un atribut textual al conceptului in DOM (acest atribut va fi un label),
+     * trebuie sa gasim si un "<input type=text>|<select>|<textarea>" in apropierea acestul atribut 
+     * textual (i.e. text inputul legat de acest label); acest tag-ul de input este asociat acestui 
+     * label in documentul randat in browser; detectam astfel toate input-urile sau text area sau 
+     * select-urile asociate fiecarui atribut textual al conceptului detectat.
+     * -- daca nu gasim nici un astfel de control de input (e.g. input type text, text area, select),
+     * inseamna ca operatia este SELECT.
+     * -- daca gasim controale de input si daca aceste input-uri nu au valoare (sunt goale), operatia 
+     * este INSERT.
+     * -- altfel, daca cel putin un astfel de input are valoare, operatia e UPDATE.
+     */
+    let detectedConceptOperation = {"concept" : null, "operation" : null};
+    
+    for (concept in DataModel) { 
+        console.log(concept, DataModel[concept]);
+        let attributeOccurences = 0;
+        let inputNodesCount = 0;
+        let nonemptyInputNodesCount = 0;
+        for (property of DataModel[concept]) {
+            let i = 0;
+            while (i<textElementsWithInputs.length) {
+                if (textElementsWithInputs[i].textNode && 
+                    textElementsWithInputs[i].textNode.innerText.includes(property)) {
+                    
+                    attributeOccurences++;
+                    if (textElementsWithInputs[i].inputNode && 
+                        ((textElementsWithInputs[i].inputNodeTag.toUpperCase() == "INPUT") ||
+                        (textElementsWithInputs[i].inputNodeTag.toUpperCase() == "TEXTAREA"))) {
+                        // we should have also tested the value of SELECT, but we ignore them for now
+                        inputNodesCount++;
+                        if (textElementsWithInputs[i].inputNode.value != "") {
+                            nonemptyInputNodesCount++;    
+                        }
+                    }
+
+                    break;
+                }
+                i++;
+            }
+            //console.log(property, occurences);
+        };
+        console.log("attributeOccurences=", attributeOccurences, " noOfProperties=", DataModel[concept].length);
+        if (attributeOccurences==DataModel[concept].length) {
+            detectedConceptOperation.concept = concept;
+            if (inputNodesCount==0) {
+                detectedConceptOperation.operation = "SELECT";
+            } else if (nonemptyInputNodesCount > 1) { // it can also be ">0"
+                detectedConceptOperation.operation = "UPDATE";
+            } else {
+                detectedConceptOperation.operation = "INSERT";
+            }          
+
+            break;
+        }
+    }
+
+    return detectedConceptOperation;
+};
+
 
 function highlightElements(nodes, color) {
     nodes.forEach(function(node) {
@@ -360,18 +441,18 @@ function undoHighlightInputElements() {
     });
 }
 
-function highlightTextInputElemAssociations() {
+function highlightTextInputElemAssociations(root) {
     textElementsWithInputs.forEach(function(item) {
-        if ((item['textNode'] != null) && (item['inputNode'] != null) && (item['textNode'].innerText == "Account Name")) {
+        if ((item['textNode'] != null) && (item['inputNode'] != null) /*&& (item['textNode'].innerText == "POSTS")*/) {
             //console.log("textElementsWithInputs item:", item);
             let inputNodePosition = item['inputNode'].getBoundingClientRect();
             let textNodePosition = item['textNode'].getBoundingClientRect();
-            //console.log("inputNodePosition: ", inputNodePosition, " textNodePosition: ", textNodePosition);
-            let root = window.frames[0].document;
+            console.log("inputNodePosition: ", inputNodePosition, " textNodePosition: ", textNodePosition);
             let canvas = root.createElement("canvas");
             canvas.setAttribute("class", "taskmate-canvas");
+            canvas.setAttribute("id", item['textNode'].innerText+"|"+item['inputNode'].outerHTML);
             canvas.style.position = "absolute";
-            canvas.style.border = "1px solid cyan";
+            //canvas.style.border = "1px solid cyan";
             if (item['relativePosition'] == "right&!below") {
                 canvas.style.left = textNodePosition.right +"px";
                 canvas.style.top = textNodePosition.top + "px";
@@ -402,7 +483,7 @@ function highlightTextInputElemAssociations() {
                 ctx.stroke();                
             } else if (item['relativePosition'] == "right&below") {
                 canvas.style.left = textNodePosition.right + "px";
-                canvas.style.top = textNodePosition.top /*+ window.scrollY*/;
+                canvas.style.top = textNodePosition.top /*+ window.scrollY*/ + "px";
                 canvas.width = inputNodePosition.left - textNodePosition.right;
                 canvas.height = inputNodePosition.bottom - textNodePosition.top;
                 const ctx = canvas.getContext('2d');
@@ -415,16 +496,18 @@ function highlightTextInputElemAssociations() {
                                         (inputNodePosition.bottom-inputNodePosition.top)/2);
                 ctx.stroke();
             }
-            let ancestor = getClosestAncestorWithVerticalScroll(root, item['textNode']);
+            //let ancestor = getClosestAncestorWithVerticalScroll(root, item['textNode']);
+            let ancestor = getClosestCommonAncestor(root, item['textNode'], item['inputNode']);
+            //ancestor.style.border = "2px solid purple";
+            ancestor.style.position = "relative";
             if (ancestor != null) {
-                console.log(canvas.style.top);
-                canvas.style.top = canvas.style.top - ancestor.getBoundingClientRect().top;
-                canvas.style.top += "px";
-                console.log(canvas.style.top);
+                // TODO: Setarile de top si left de mai jos sunt stupide (daca nu pun +'px' in aceeasi linie nu e nici un efect)
+                canvas.style.top = parseFloat(canvas.style.top) - ancestor.getBoundingClientRect().top + 'px';
+                canvas.style.left = parseFloat(canvas.style.left) - ancestor.getBoundingClientRect().left + 'px';
                 ancestor.appendChild(canvas);
                 console.log("ClosestAncestorWithVerticalScroll", ancestor);
-            } else 
-            root.body.appendChild(canvas);
+            } else  
+                root.body.appendChild(canvas);
             
             //console.log("canvas bounding box: ", canvas.getBoundingClientRect());
 
@@ -432,28 +515,52 @@ function highlightTextInputElemAssociations() {
     });
 }
 
+function undoHighlightTextInputElemAssociations(root) {
+    root.querySelectorAll(".taskmate-canvas").forEach(function(node) {node.remove()})
+}
+
 
 function getClosestAncestorWithVerticalScroll(root, node) {
     let ancestor = node.parentNode;
     while (ancestor) { 
-            if (ancestor.scrollHeight > ancestor.clientHeight) break; 
-            else ancestor = ancestor.parentNode;
+            if ((ancestor.scrollHeight > ancestor.clientHeight) && 
+                !(window.getComputedStyle(ancestor).overflow && 
+                    window.getComputedStyle(ancestor).overflow == 'hidden')) {
+                 break; 
+            } else ancestor = ancestor.parentNode;
             if (ancestor.isEqualNode(root)) { ancestor = null; break; }
         };
+    console.log("ancestor.scrollHeight=", ancestor.scrollHeight, " ancestor.clientHeight=", 
+        ancestor.clientHeight, " ancestor=", ancestor);
     return ancestor;
 }
 
-/*
-function detectOperation(root) {
-    let textinputNodes = [];
-    root.querySelectorAll("input[type='text']").forEach(function(item) {
-        // detect the closest label for this input
-        let label = getAssociatedLabel(item);
-        textinputNodes.push({"input" : item, "label" : label);
-    
-    })
-    return textinputNodes;
-}*/
+function getClosestCommonAncestor(root, node1, node2) {
+    if (node1 == node2) return node1;
+    let parent = node1;
+    while (parent = parent.parentNode) {
+        if (parent.contains(node2)) return parent;
+        if (parent.isEqualNode(root)) return root;
+    }
+    return null;
+}
+
+
+function SerializeDOMPath(root, path) {
+    let str = "";
+    for(i=0; i<path.length; i++) {
+        if (path[i].isEqualNode(root)) break;
+        //console.log("node:", path[i]);
+        str += path[i].tagName;
+        if (path[i].getAttribute("id") && path[i].getAttribute("id") != "") 
+            str += "#" + path[i].getAttribute("id");
+        else if (path[i].getAttribute("class") && path[i].getAttribute("class") != "") 
+            str += "." + path[i].getAttribute("class");
+        str += "|";
+    };
+    console.log(str);  
+    return str;  
+}
 
 
 //console.log("Running processDOMDifference() ...");

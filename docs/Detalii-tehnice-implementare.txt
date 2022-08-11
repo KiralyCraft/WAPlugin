@@ -55,24 +55,25 @@ nu au acest atribut custom, deci suntem pe pagina html principala, atunci path-u
 la <body>).
 Algoritmul este urmatorul:
 1) Utilizatorul uman face click pe buton/link-ul respectiv
-*2) Un hook ajuta pluginul sa se prinda, dupa ce detecteaza o cerere XHR, care buton/click 
+2) Un hook ajuta pluginul sa se prinda, dupa ce detecteaza o cerere XHR, care buton/click 
 a fost apasat de catre utilizatorul uman si salveaza ID-ul acestui buton/click in local storage.
 [document.addEventListener('click', function(event) { console.log("Forest", event)});]
-*3) Pluginul retine reprezentarea (path in DOM) a nodului pre-frunza de la punctul 2)
+3) Pluginul retine reprezentarea (path in DOM) a nodului pre-frunza de la punctul 2)
 4) Dupa alarm-ul de 1 minut rezultat in urma cererilor XHR, plugin-ul cauta conceptul
 (i.e. atributele lui) in DOM-ul updatat [asta s-a implementat deja in sprintul precedent].
 Asa se detecteaza conceptul
-*5) Pentru detectia operatiei (SELECT, INSERT, UPDATE), pluginul face urmatoarele:
+5) Pentru detectia operatiei (SELECT, INSERT, UPDATE), pluginul face urmatoarele:
 - acolo unde detecteaza un atribut textual al conceptului in DOM (acest atribut va fi un label),
-trebuie sa gasim si un "<input type=text>" in apropierea acestul atribut textual (i.e.
-text inputul legat de acest label); tag-ul de input va trebui cautat intr-un cerc in jurul
-acestui label in documentul randat in browser (de obicei inputul se va afla in dreapta label-ului,
-in aceeasi linie); detectam astfel toate input-urile sau text area sau select-urile asociate
-fiecarui atribut textual al conceptului detectat.
+trebuie sa gasim si un "<input type=text>|<select>|<textarea>" in apropierea acestul atribut 
+textual (i.e. text inputul legat de acest label); tag-ul de input va trebui cautat intr-un cerc 
+in jurul acestui label in documentul randat in browser (de obicei inputul se va afla in dreapta 
+label-ului, in aceeasi linie sau dedesubtul lui; cautam inputul in cadranul Sud-Est al atributului 
+textual); detectam astfel toate input-urile sau text area sau select-urile asociate fiecarui atribut 
+textual al conceptului detectat.
 - daca nu gasim nici un astfel de control de input (e.g. input type text, text area, select),
 inseamna ca operatia este SELECT.
 - daca gasim controale de input si daca aceste input-uri nu au valoare (sunt goale), operatia este INSERT
-- altfe, daca cel putin un astfel de input are valoare, operatia e UPDATE
+- altfel, daca cel putin un astfel de input are valoare, operatia e UPDATE
 
 ====================================================================================================
 
