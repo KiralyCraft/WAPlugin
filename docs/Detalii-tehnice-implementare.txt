@@ -20,6 +20,8 @@ nu sunt legate de nici un concept)
 - noduri frunza (nivel 0) : un concept (tabel) sau o entitate a unui concept (row/record din tabel)
 plus o operatie (SELECT ALL, SELECT, INSERT, UPDATE, DELETE)
 
+Observatie: Generalizare - un nod pre-frunza poate duce la un nod frunza sau alt nod frunza
+in functie de un context stabilit anterior.
 
 Un segment de harta cu noduri de mai sus este urmatorul:
 Nod3 -> Nod2 -> Nod2 -> ... -> Nod2 -> Nod1 -> Nod0
@@ -54,7 +56,8 @@ la <body>).
 Algoritmul este urmatorul:
 1) Utilizatorul uman face click pe buton/link-ul respectiv
 *2) Un hook ajuta pluginul sa se prinda, dupa ce detecteaza o cerere XHR, care buton/click 
-a fost apasat de catre utilizatorul uman
+a fost apasat de catre utilizatorul uman si salveaza ID-ul acestui buton/click in local storage.
+[document.addEventListener('click', function(event) { console.log("Forest", event)});]
 *3) Pluginul retine reprezentarea (path in DOM) a nodului pre-frunza de la punctul 2)
 4) Dupa alarm-ul de 1 minut rezultat in urma cererilor XHR, plugin-ul cauta conceptul
 (i.e. atributele lui) in DOM-ul updatat [asta s-a implementat deja in sprintul precedent].
@@ -63,7 +66,7 @@ Asa se detecteaza conceptul
 - acolo unde detecteaza un atribut textual al conceptului in DOM (acest atribut va fi un label),
 trebuie sa gasim si un "<input type=text>" in apropierea acestul atribut textual (i.e.
 text inputul legat de acest label); tag-ul de input va trebui cautat intr-un cerc in jurul
-acestui label in documentul randat in browser (de obicei inputul se va afta in dreapta label-ului,
+acestui label in documentul randat in browser (de obicei inputul se va afla in dreapta label-ului,
 in aceeasi linie); detectam astfel toate input-urile sau text area sau select-urile asociate
 fiecarui atribut textual al conceptului detectat.
 - daca nu gasim nici un astfel de control de input (e.g. input type text, text area, select),
@@ -73,3 +76,26 @@ inseamna ca operatia este SELECT.
 
 ====================================================================================================
 
+
+Pluginul ar trebui sa scoata 2 lucruri:
+- harta completa a site-ului/aplicatiei - graf
+- block-uri primare/atomice (cu 2 componente) pentru operatii CRUD, de ex. :
+Varianta 1: drumuri relative
+[Nod1.1] -> [Nod0.1: Account - Select ALL]
+[Nod1.2] -> [Nod0.2: Account - SELECT]
+[Nod1.3] -> [Nod0.3: Account - INSERT]
+[Nod1.4] -> [Nod0.4: Account - UPDATE]
+[Nod1.5] -> [Nod0.5: Account - DELETE]
+
+[Nod1.6] -> [Nod0.6: Lead - Select ALL]
+[Nod1.7] -> [Nod0.7: Lead - SELECT]
+[Nod1.8] -> [Nod0.8: Lead - INSERT]
+[Nod1.9] -> [Nod0.9: Lead - UPDATE]
+[Nod1.10] -> [Nod0.10: Lead - DELETE]
+
+Varianta 2: drumuri absolute (incepand de la pagina principala)
+Exemplu Block primar pentru INSERT Account:
+[Nod3.1: BurgerMenu] -> [Nod2.1: Buton Sales] -> [Nod2.2: Buton Accounts] -> [Nod1.1: Buton +New] -> 
+        -> [Nod0.1: Account - INSERT]
+
+[Nod3.1: BurgerMenu] -> [Nod2.2: Buton Service] -> ...

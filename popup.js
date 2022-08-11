@@ -128,7 +128,7 @@ function buildInjectors()
 			chrome.tabs.query({active: true, currentWindow: true}, function(tabs) 
 			{
 				chrome.scripting.executeScript({
-					target: {tabId: tabs[0].id, allFrames: true},
+					target: {tabId: tabs[0].id, allFrames: false},
 					files: [ scriptNameDeep ]
 				});
 			});
@@ -189,4 +189,28 @@ document.addEventListener("DOMContentLoaded", function(event) {
 		}
 	});
 	//buildInjectors(); //Don't always force the building of injectors, because they may already be present
+});
+
+
+
+function onClickHandle_processDOMDifferenceButton() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_processDOMDifference'}, 
+                                function(response) {});
+    });
+}
+        
+function onClickHandle_undoHighlightInputsButton() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_undoHighlightInputs'}, 
+                                function(response) {});
+    });
+}
+
+document.querySelector('#processDOMDifferenceButton').addEventListener('click', function() {
+       onClickHandle_processDOMDifferenceButton();
+});
+
+document.querySelector('#undoHighlightInputsButton').addEventListener('click', function() {
+       onClickHandle_undoHighlightInputsButton();
 });

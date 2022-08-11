@@ -29,12 +29,25 @@ value "popup.html".
 	{
 		min-width:300px;
 	}
+	#primaryBlocksOperations {
+		border-bottom: 1px solid blue;
+	}
+	button {
+		border-radius:  2px;
+		border:  1px solid blue;
+	}
+
 	</style>
 
-	<script src="popup.js"></script>
+	<script src="popup.js" defer></script>
 </head>
 <body>
 <div id="plugin">
+	<div id="primaryBlocksOperations">
+		<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/>
+		<button id="undoHighlightInputsButton">Undo highlight Input nodes</button>
+	</div>
+
 	<div id="inputList">
 	<table style="width:100%">
 		<caption>Detected inputs</caption>

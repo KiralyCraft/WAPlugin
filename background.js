@@ -107,9 +107,9 @@ chrome.alarms.onAlarm.addListener(
         console.log('xhrAlarm():', new Date().toLocaleString());
         let activeTab = await getTargetTab();
         console.log("activeTab:", activeTab, activeTab[0].id);
-        chrome.tabs.sendMessage(activeTab[0].id, { action: "updatePhantomDOM"}, function(response) {
-            console.log("received response from content script:", response);
-        });  
+        chrome.tabs.sendMessage(activeTab[0].id, { request: "message_background_page_updatePhantomDOM"}, 
+            function(response) { console.log("received response from content script:", response);
+            });  
     }
 );
 
