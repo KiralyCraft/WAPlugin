@@ -1,5 +1,5 @@
 
-Tipuri de noduri de navgare:
+Tipuri de noduri de navigare:
 - noduri de inceput, de nivel superior (nivel 3): noduri de tip meniu care duc la documente web 
 care contin elemente clickabile care duc spre concepte
 - noduri intermediare de legatura (nivel 2) : un nod care duce de la un nod de inceput sau
@@ -74,6 +74,33 @@ textual al conceptului detectat.
 inseamna ca operatia este SELECT.
 - daca gasim controale de input si daca aceste input-uri nu au valoare (sunt goale), operatia este INSERT
 - altfel, daca cel putin un astfel de input are valoare, operatia e UPDATE
+
+
+Algoritm de detectie si reprezentare a unui block primar de navigare cu 2 componente pentru operatia
+SELECT ALL (tabel); algoritmul trebuie sa detecteze aranjarea elementelor textuale intr-un tabel (pt. Microsoft Dynamics 2016 CRM) sau o lista (Jira); aceste elemente textuale din tabel pot include 
+nume de atribute din DataModel (ca si cap de tabel).
+Algoritmul de detectie aranjare elemente textuale in tabel:
+1) Fie C = vectorul cu noduri textuale (noduri/taguri ce contin inner text)
+2) Clusterizam elementele din C in functie de pozitia lor pe axa OY (adica
+elem.getBoundingClientRect().top) plus/minus un threshold Thresh = 10px.
+Adica elementele textuale T1 si T2 sunt in aceeasi cluster (i.e. pe aceeasi linie)
+daca T1.getBoundingClientRect().top = T2.getBoundingClientRect().top +/- 10px
+3) Fiecare astfel de cluster/linie il highlight-uiesti cu un border de culoare albastru;
+Daca toate acele elemente textuale dintr-o linie/cluster au border-bottom atunci
+highlight-uiesti linia cu un border de culoare verde; Daca toate acele elemente 
+textuale dintr-o linie/cluster sunt de fapt nume de atribute din DataModel, atunci
+highlight-uiesti linia cu un border de culoare rosie; 
+4) In final faci unul sau mai multe mega-clustere formate din clustere/linii detectate
+la punctele 2-3. Un mega-cluster este de fapt un tabel si contine linii pentru
+care intre doua linii succesive avem: Linia1.getBoundingClientRect().bottom =
+Linia2.getBoundingClientRect().top + offset, unde offset este un numar intre 0px
+si (height of a line)/2 pixels.
+
+
+Functii javascript DOM utile:
+window.getComputedStyle(element).[top|bottom|left|right]
+elem.getBoundingClientRect().[top|bottom|left|right]
+elem.style.border (borderLeft, borderRight, borderTop, borderBottom)
 
 ====================================================================================================
 
