@@ -1,5 +1,6 @@
 
-Tipuri de noduri de navigare:
+I. Tipuri de noduri de navigare:
+--------------------------------------------------------------
 - noduri de inceput, de nivel superior (nivel 3): noduri de tip meniu care duc la documente web 
 care contin elemente clickabile care duc spre concepte
 - noduri intermediare de legatura (nivel 2) : un nod care duce de la un nod de inceput sau
@@ -30,7 +31,8 @@ Nod3 -> Nod1 -> Nod0
 ====================================================================================================
 
 
-ID-uri unice pentru butoane/link-uri:
+2. ID-uri unice pentru butoane/link-uri:
+----------------------------------------------------
 - generate din requesturi XHR
         o PRO : ar trebui sa identifice acelasi buton in mai multe pagini web
         o CONS : in cazul Microsoft CRM sunt mari cererile (Microsoft Dynamics 365 nu foloseste
@@ -43,6 +45,8 @@ cea care nu are atributul custom "taskmateID") - pare OK.
 ====================================================================================================
 
 
+3. Algoritm detectie block primar de navigare cu 2 componente: [Nod pre-frunza] -> [Nod frunza] pt. operatiile SELECT, INSERT, UPDATE.
+----------------------------------------------------------------------------------------------
 Deocamdata ignoram operatiile SELECT ALL si DELETE si consideram doar SELECT, INSERT, UPDATE.
 Algoritm de detectie si reprezentare a unui block primar de navigare cu 2 componente de tipul: 
 [Nod pre-frunza] -> [Nod frunza]
@@ -76,8 +80,9 @@ inseamna ca operatia este SELECT.
 - altfel, daca cel putin un astfel de input are valoare, operatia e UPDATE
 
 
-Algoritm de detectie si reprezentare a unui block primar de navigare cu 2 componente pentru operatia
-SELECT ALL (tabel); algoritmul trebuie sa detecteze aranjarea elementelor textuale intr-un tabel (pt. Microsoft Dynamics 2016 CRM) sau o lista (Jira); aceste elemente textuale din tabel pot include 
+4. Algoritm de detectie si reprezentare a unui block primar de navigare cu 2 componente pentru operatia SELECT ALL (tabel)
+-------------------------------------------------------------------------------------------------------
+Algoritmul trebuie sa detecteze aranjarea elementelor textuale intr-un tabel (pt. Microsoft Dynamics 2016 CRM) sau o lista (Jira); aceste elemente textuale din tabel pot include 
 nume de atribute din DataModel (ca si cap de tabel).
 Algoritmul de detectie aranjare elemente textuale in tabel:
 1) Fie C = vectorul cu noduri textuale (noduri/taguri ce contin inner text)
@@ -101,6 +106,37 @@ Functii javascript DOM utile:
 window.getComputedStyle(element).[top|bottom|left|right]
 elem.getBoundingClientRect().[top|bottom|left|right]
 elem.style.border (borderLeft, borderRight, borderTop, borderBottom)
+
+4. Algoritm de detectie si reprezentare a unui block primar de navigare cu 2 componente pentru operatia DELETE
+-------------------------------------------------------------------------------------------------------
+Algoritmul e strans legat de algoritmul precedent de detectie tabel (operatia SELECT ALL) si contine 
+urmatorii pasi:
+1) Dupa ce am detectat un tabel care cuprinde cate o entitate pe linie, cautam in fiecare linie
+un element <input type="checkbox"> (daca e hidden, il facem vizibil si ii setam pozitia absoluta
+sa fie egala cu pozitia pe ecran a celui mai apropiat stramos al lui cu display:none sau 
+visibility:hidden)
+2) Daca am gasit checkboxul pe fiecare linie, cautam un element clickabil in tot ecranul
+care are innerText textul "DELETE" (TODO: dupa ce avem serviciul extern de recunoastere
+iconuri, cautam si un element clickabil cu iconita de recycle bin pe el).
+Observatie: Element clickabil inseamna: input (<input type="button">,<button>,<a>) si orice alt
+element DOM care are handler de onClick()
+3) Daca am gasit si checkbox-ul si butonul DELETE, salvam blockul primar de navigare DELETE:
+[Nod pre-frunza1] -> [Nod pre-frunza2] -> [Nod frunza]
+unde [Nod frunza] = [Concept : DELETE], iar Conceptul e pre-determinat din tabel (l-am identificat
+deja cand am identificat tabelul) si reprezinta contentul DOM cu fereastra care cere confirmare
+pentru stergere. [Nod pre-frunza1] = [IDTabel, ID"<input type='checkbox'>"] si este generic
+(un singur nod pentru toate entitatile din tabel). ID"<input type='checkbox'>" deoarece e 
+generic pentru toate entitatile va fi calea in DOM (fara id-uri, doar tagnames si class-uri CSS)
+de la checkboxul respectiv pana la IDTabel (adica pana la cel mai apropiat stramos care contine
+toate tagurile care contin innerTextul din celulele tabelului).
+[Nod pre-frunza2] = [IDButonDELETE] (cel care are innerText DELETE si iconita de Recycle Bin).
+
+
+
+TODO: In viitor trebuie sa avem un serviciu extern de identificare iconite si cautam o iconita
+de Recycle Bin in fiecare linie de tabel (fiecare linie corespunzand unei singure entitati din
+conceptul respectiv).
+
 
 ====================================================================================================
 
@@ -127,3 +163,35 @@ Exemplu Block primar pentru INSERT Account:
         -> [Nod0.1: Account - INSERT]
 
 [Nod3.1: BurgerMenu] -> [Nod2.2: Buton Service] -> ...
+
+
+
+====================================================================================================
+TODO (pentru Sprinturi urmatoare):
+- Detectie legaturi intre concepte/tabele in pagini web (i.e. echivalentul cheilor straine in
+baze de date; legaturi: 1:1, 1:n, n:n)
+- Navigarea automata in aplicatie (fara asistenta din partea userului); direct din plugin
+sau cu Selenium; Navigarea automata inseamna detectie element clickabil in DOM si eventul
+de click pe el; Elem. clickabil: input (<input type="button">,<button>,<a>) si orice alt
+element DOM care are handler de onClick()
+- Detectie intreaga harta aplicatie (nu doar building blocks cu operatii CRUD)
+- [Cum sa descoperim harta aplicatiei navigand automat, dar fara sa stergem date din BD ?]
+- Serviciu extern de identificare icon-uri (poze) in pagina
+- Detectie automat data model in aplicatie web (sa nu mai fie dat ca input data modelul la plugin)
+- Detectie parte DOM updatata pe UI (cu atributul custom [taskmateID] - nu mergea chiar bine in iframe)
+- Cresterea robustetii : Detectie block primar atomic ambigu (de ex. tabel in care afiseaza 
+mai multe entitati dar numai o parte din campuri, cum e la Accounts, si acolo pot sa dau 
+click pe 2 entitati - randuri din tabel - si vad ca la fiecare entitate sunt afisate atributele 
+entitatii din Data Model)
+
+
+
+
+Idei de articole:
+- Construirea de building blocks atomice de operatii pentru automatizarea unei aplicatii web de business
+  [ descriem procese complexe in BPMN folosind building blocksurile atomice]
+- Construirea hartii unei aplicatii web de business (harta completa, nu doar building blocks)
+- Determinarea modelului de date din UI-ul aplicatiei web pentru automatizare
+- Automatizari naturale ale aplicatiilor web dinamice (comenzi date in NLP)
+  [ descriu cum ar functiona un robot RPA pe baza la toate lucrurile determinate mai sus ]
+====================================================================================================
