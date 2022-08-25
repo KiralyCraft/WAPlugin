@@ -18,7 +18,12 @@ function executeDetectionProcedure()
 	let possibleTableHeaders = filterPossibleTableHeaders(detectedTextElements);
 	let dataModelMatrix = detectLikelyDataModel(possibleTableHeaders);
 	
+	//TODO actually choose this more carefully. Right now we just assume the top-most is the one.
+	let chosenDataModel = Object.keys(dataModelMatrix)[0];
+	let chosenDataModelHeaderElements = dataModelMatrix[chosenDataModel];
 	
+	let verticalClusters = clusterElementsByHeadersVertically(chosenDataModelHeaderElements,detectedTextElements);
+	console.log(verticalClusters);
 }
 
 /*
@@ -138,4 +143,55 @@ function detectLikelyDataModel(_conceptMatrix)
 	});
 	
 	return _conceptMatrix;
+}
+
+/*
+ * Clusters elements in a matrix, defined by the header elements. It is very probable that the overall detected text elements also contain the headers, so this must be checked. 
+ */
+function clusterElementsByHeadersVertically(_chosenDataModelHeaderElements,_detectedTextElements)
+{
+	/*
+	 * The maximum horizontal displacement of the computed style used when determining whether or not an element is part of a column. 
+	 */
+	let HORIZONTAL_THRESHOLD = 10;
+	
+	let tableMatrix = new Map();
+	for (headerElementIndex in _chosenDataModelHeaderElements)
+	{
+		let headerElement = _chosenDataModelHeaderElements[headerElementIndex];
+		
+		tableMatrix.set(headerElement,[]); //Init the table matrix
+		let headerElementPosition = [headerElement.getBoundingClientRect().top, headerElement.getBoundingClientRect().left, headerElement.getBoundingClientRect().right, headerElement.getBoundingClientRect().bottom];
+		
+		for (detectedElementIndex in _detectedTextElements)
+		{
+			let detectedElement = _detectedTextElements[detectedElementIndex];
+			if (detectedElement !== headerElement)
+			{
+				let detectedElementPosition = [detectedElement.getBoundingClientRect().top, detectedElement.getBoundingClientRect().left, detectedElement.getBoundingClientRect().right, detectedElement.getBoundingClientRect().bottom];
+				
+				let columnMemberConfirmations = 0;
+				
+				//Left alignment check
+				if (Math.abs(headerElementPosition[1] - detectedElementPosition[1]) <= HORIZONTAL_THRESHOLD)
+				{
+					columnMemberConfirmations++;
+				}
+				
+				//Central alignment check. It should not be possible for the header to be wider than the element it contains, at least when rendered visually. 
+				if (headerElementPosition[1] <= detectedElementPosition[1] &&
+					headerElementPosition[2] >= detectedElementPosition[2])
+				{
+					columnMemberConfirmations++;
+				}
+				
+				if (columnMemberConfirmations >= 1)
+				{
+					tableMatrix.get(headerElement).push(detectedElement);
+				}
+			}
+		}
+	}
+	
+	return tableMatrix;
 }
