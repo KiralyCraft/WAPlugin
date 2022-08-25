@@ -89,17 +89,30 @@ Algoritmul de detectie aranjare elemente textuale in tabel:
 2) Clusterizam elementele din C in functie de pozitia lor pe axa OY (adica
 elem.getBoundingClientRect().top) plus/minus un threshold Thresh = 10px.
 Adica elementele textuale T1 si T2 sunt in aceeasi cluster (i.e. pe aceeasi linie)
-daca T1.getBoundingClientRect().top = T2.getBoundingClientRect().top +/- 10px
+daca T1.getBoundingClientRect().top = T2.getBoundingClientRect().top +/- 10px.
+Clusterizarea liniilor se face sortand nodurile textuale dupa pozitia Top a lor.
 3) Fiecare astfel de cluster/linie il highlight-uiesti cu un border de culoare albastru;
 Daca toate acele elemente textuale dintr-o linie/cluster au border-bottom atunci
 highlight-uiesti linia cu un border de culoare verde; Daca toate acele elemente 
 textuale dintr-o linie/cluster sunt de fapt nume de atribute din DataModel, atunci
 highlight-uiesti linia cu un border de culoare rosie; 
-4) In final faci unul sau mai multe mega-clustere formate din clustere/linii detectate
-la punctele 2-3. Un mega-cluster este de fapt un tabel si contine linii pentru
-care intre doua linii succesive avem: Linia1.getBoundingClientRect().bottom =
-Linia2.getBoundingClientRect().top + offset, unde offset este un numar intre 0px
-si (height of a line)/2 pixels.
+4) Apoi clusterizam elementele din C in functie de pozitia lor pe axa OX (adica
+elem.getBoundingClientRect().top) plus/minus un threshold Thresh = 10px. Un cluster
+va reprezenta o coloana. Clusterizarea coloanelor se face sortand nodurile textuale 
+dupa pozitia Left a lor.
+5) In final faci unul sau mai multe mega-clustere formate din clusterele-linii 
+si clusterele-coloane detectate la punctele 2-4. Un mega-cluster este de fapt 
+un tabel si contine linii pentru care intre doua linii succesive avem: 
+Linia1.getBoundingClientRect().bottom = Linia2.getBoundingClientRect().top + offset, 
+unde offset este un numar intre 0px si (height of a line)/2 pixels.
+Pentru formarea unui mega-cluster (i.e. tabel) din vectorul de clustere-linii si
+vectorul de clustere-coloane, se parcurge fiecare element text din C si se calculeaza
+din ce cluster-linie si ce cluster-coloana face parte. Apoi se formeaza tabelul
+luand pe rand toate nodurile text din linia 0, coloana 0, coloana 1, coloana 2, ...
+Apoi se iau toate nodurile text din linia 1, coloana 0, coloana 1, coloana 2, ...
+Apoi se iau toate nodurile text din linia 2 si tot asa pana nu mai sunt clustere-linii. 
+
+
 
 
 Functii javascript DOM utile:
