@@ -19,6 +19,7 @@
       "contentScripts/00-datamodel-spec.js",
       "contentScripts/00-jquery.min.js",
       "contentScripts/00-page.js",
+      "contentScripts/01-conceptDetect-SELECT_ALL.js",
       "contentScripts/01-inputDetector.js",
       "contentScripts/99-hotProbeResponder.js"      
   ],
