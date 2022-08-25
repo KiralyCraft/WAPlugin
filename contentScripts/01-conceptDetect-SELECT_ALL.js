@@ -15,12 +15,10 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 function executeDetectionProcedure()
 {
 	let detectedTextElements = filterDetectedTextElements(getTextElements(window.frames[0].document.body));
-	console.log(detectedTextElements);
+	let possibleTableHeaders = filterPossibleTableHeaders(detectedTextElements);
+	let dataModelMatrix = detectLikelyDataModel(possibleTableHeaders);
 	
-	for (elem in detectedTextElements)
-	{
-		detectedTextElements[elem].style.outline = '#f00 solid 4px';
-	}
+	
 }
 
 /*
@@ -79,4 +77,65 @@ function filterDetectedTextElements(_detectedTextElements)
 		}
 	}
 	return filteredTextElements;
+}
+
+/*
+ * Filter possible table headers from the detected text elements, taking into account the defined datamodels.
+ */
+function filterPossibleTableHeaders(_detectedTextElements)
+{
+	let conceptMatrix = [];
+	for (knownDataModelIndex in DataModel) 
+	{
+		let studiedDataModel = DataModel[knownDataModelIndex];
+		for (detectedElementIndex in _detectedTextElements)
+		{
+			let detectedElement = _detectedTextElements[detectedElementIndex];
+			
+			for (studiedDataModelIndex in studiedDataModel)
+			{
+				let studiedDataModelEntry = studiedDataModel[studiedDataModelIndex];
+				let studiedDataModelEntryLowerCase = studiedDataModelEntry.toLowerCase().trim();
+				let detectedElementTextLowerCase = detectedElement.innerHTML.toLowerCase().trim();
+				
+				let foundMatch = false;
+				
+				//If the texts match exactly
+				if (studiedDataModelEntryLowerCase === detectedElementTextLowerCase)
+				{
+					foundMatch = true;
+				}
+				else if (detectedElementTextLowerCase.includes(studiedDataModelEntryLowerCase))
+				{
+					foundMatch = true;
+				}
+				
+				if (foundMatch)
+				{
+					let conceptDetectionArray = conceptMatrix[studiedDataModel];
+					if (conceptDetectionArray === undefined)
+					{
+						conceptDetectionArray = conceptMatrix[studiedDataModel] = [];
+					}
+					conceptDetectionArray.push(detectedElement);
+				}
+			}
+		}
+	}
+	return conceptMatrix;
+}
+
+/*
+ * Expected to receive a two-dimensional matrix. The first index defines the concepts, and the second one represents the elements that seem to belong to that concept. 
+ * It returns a sorted array of concepts, with the most likely one being top (lowest index).
+ */
+function detectLikelyDataModel(_conceptMatrix)
+{
+	_conceptMatrix.sort(function sortFunction(valueA,valueB)
+	{
+		//TODO trebuie sa mai definim un concept ca sa vedem exact cum facem sort aici.
+		return 0;
+	});
+	
+	return _conceptMatrix;
 }
