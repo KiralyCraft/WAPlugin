@@ -23,7 +23,22 @@ function executeDetectionProcedure()
 	let chosenDataModelHeaderElements = dataModelMatrix[chosenDataModel];
 	
 	let verticalClusters = clusterElementsByHeadersVertically(chosenDataModelHeaderElements,detectedTextElements);
-	console.log(verticalClusters);
+	
+	let horizontalClusters = clusterElementsHorizontally(verticalClusters);
+	//filterVerticalClusters(verticalClusters);
+	
+	//TODO pot gasi un dreptunghi care sa includa doar ce am gasit si nimic altceva?
+	//TODO cat de mic trebuie sa fie dreptunghiul astfel incat sa includa doar chestii ce le-am gasit, dar nimic altceva?
+	//TODO spatiul intre doua linii sa fie mai mic.
+	/*
+	 * Un mega-cluster este de fapt un tabel si contine linii pentru
+		care intre doua linii succesive avem: Linia1.getBoundingClientRect().bottom =
+		Linia2.getBoundingClientRect().top + offset, unde offset este un numar intre 0px
+		si (height of a line)/2 pixels.*/
+	
+	//TODO de vazut mai mnulte tabele in aceeasi pagina, rulam de mai multe ori si excludem alea prin care am trecut deja
+	
+	//TODO de vazut pentru fiecare element, care e top si bottom. pe baza astora, identificam liniile. unele coloane pot fi goale, dar pentru fiecare coloana zicem care sunt coloanele (pe baza top & bottom). apoi facem interclasare si reorientare 
 }
 
 /*
@@ -194,4 +209,145 @@ function clusterElementsByHeadersVertically(_chosenDataModelHeaderElements,_dete
 	}
 	
 	return tableMatrix;
+}
+
+/*
+ * Clusters the given elements in lines, based on their top and bottom positions.
+ * Takes the vertical cluster map as an argument, and returns an array of sets, each containing elements that share the same line.
+ */
+function clusterElementsHorizontally(_verticalClusters)
+{
+	//let visitedElementsSet = new Set();
+	let horizontalClusterMap = new Map();
+	let uniqueLineArray = [];
+	
+	let verticalClusterValues = [..._verticalClusters.values()];
+	
+	for (checkedClusterValues of verticalClusterValues)
+	{
+		for (checkedClusterElementIndex in checkedClusterValues)
+		{
+			let checkedClusterElement = checkedClusterValues[checkedClusterElementIndex];
+			
+			for (checkedAgainstClusterValues of verticalClusterValues)
+			{
+				//Do not check the same cluster with itself
+				if (checkedAgainstClusterValues !== checkedClusterValues)
+				{
+					for (checkedAgainstClusterElementIndex in checkedAgainstClusterValues)
+					{
+						
+						let checkedAgainstClusterElement = checkedAgainstClusterValues[checkedAgainstClusterElementIndex];
+						
+						//if (!visitedElementsSet.has(checkedAgainstClusterElement) && !visitedElementsSet.has(checkedClusterElement))
+						//{
+							let boundingA = checkedClusterElement.getBoundingClientRect();
+							let boundingB = checkedAgainstClusterElement.getBoundingClientRect();
+							
+							if (Math.abs(boundingA.top - boundingB.top) <= (boundingA.height+boundingB.height)/2/2)
+							{
+								//visitedElementsSet.add(checkedAgainstClusterElement);
+								
+								//console.log(checkedClusterValues[checkedClusterElementIndex]);
+								//console.log(checkedAgainstClusterValues[checkedAgainstClusterElementIndex]);
+								//console.log();
+								if (horizontalClusterMap.has(checkedClusterElement))
+								{
+									let identifiedLineSet = horizontalClusterMap.get(checkedClusterElement);
+									if (!identifiedLineSet.has(checkedAgainstClusterElement))
+									{
+										identifiedLineSet.add(checkedAgainstClusterElement);
+									}
+								}
+								else if (horizontalClusterMap.has(checkedAgainstClusterElement))
+								{
+									let identifiedLineSet = horizontalClusterMap.get(checkedAgainstClusterElement);
+									if (!identifiedLineSet.has(checkedClusterElement))
+									{
+										identifiedLineSet.add(checkedClusterElement);
+									}
+								}
+								else
+								{
+									let newElementSet = new Set();
+									newElementSet.add(checkedClusterElement);
+									newElementSet.add(checkedAgainstClusterElement);
+									
+									horizontalClusterMap.set(checkedClusterElement,newElementSet);
+									horizontalClusterMap.set(checkedAgainstClusterElement,newElementSet);
+									
+									uniqueLineArray.push(newElementSet);
+								}
+							}
+						//}
+					}
+				}
+			}
+			//visitedElementsSet.add(checkedClusterElement);
+		}
+	}
+	return uniqueLineArray;
+}
+/*
+ * Filter vertical elements that are obviously out of bounds.
+ * 
+ * TODO: still working on this. change behaviour to lines, once detected
+ */
+function filterVerticalClusters(_verticalClusters)
+{
+	for ([headerElement,entryArray] of _verticalClusters)
+	{
+		//Sort the elements of this column based on their distance to the header entry
+		let sortedEntryArray = entryArray.sort(function sortingFunction(valueA,valueB)
+		{
+			return computeEntityDistance(headerElement,valueA) - computeEntityDistance(headerElement,valueB); 
+		})
+		
+		let incrementalAverage = 0;
+		for (columnEntryIndex in sortedEntryArray)
+		{
+			if (columnEntryIndex == 0) continue; //Skip the first element
+			
+			let boundingPrevious = sortedEntryArray[columnEntryIndex-1].getBoundingClientRect();
+			let boundingCurrent = sortedEntryArray[columnEntryIndex].getBoundingClientRect();
+			
+			let boundingDifference = boundingCurrent.top - boundingPrevious.bottom;
+			
+			incrementalAverage = incrementalAverage + (boundingDifference - incrementalAverage)/(columnEntryIndex);
+			
+			if (columnEntryIndex > 1)
+			{
+				if (boundingDifference > 1.5*incrementalAverage)
+				{
+					break;
+				}
+				else
+				{
+					console.log(sortedEntryArray[columnEntryIndex]);
+				}
+			}
+		}
+	}
+}
+
+/*
+ * Computes the distance between any two rectangles dictated by the parameter.
+ */
+function computeEntityDistance(entityA,entityB)
+{
+	//x1,y1,x2,y2,w1,w2,h1,h2
+	let boundingA = entityA.getBoundingClientRect();
+	let boundingB = entityB.getBoundingClientRect();
+	
+	let x1 = boundingA.x;
+	let y1 = boundingA.y;
+	let w1 = boundingA.width;
+	let h1 = boundingA.height;
+	
+	let x2 = boundingB.x;
+	let y2 = boundingB.y;
+	let w2 = boundingB.width;
+	let h2 = boundingB.height;
+	
+	return Math.max(Math.abs(x1-x2) - (w1+w2)/2,Math.abs(y1-y2)-(h1+h2)/2);
 }
