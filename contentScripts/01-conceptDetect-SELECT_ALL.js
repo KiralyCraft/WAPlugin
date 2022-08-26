@@ -344,7 +344,6 @@ function filterHorizontalClusters(headerElement,_horizontalClusters)
 /*
  * Given the cluster of horizontal elements, returns a cluster of parents for each set of "lines".
  * TODO: What happens if an element is alone on the line? For example, in a table with 3 columns, only one of them has an actual element. How do we figure what the line is? When do we know we reached a parent?
- * TODO: What happens if two elements do not share the same parent with a third? The algorithm should go back and re-compute the parent, or re-check that previous elements are also found in the second parent.
  */
 function detectHorizontalParents(domVerticalLimit,_horizontalClusters)
 {
@@ -357,6 +356,10 @@ function detectHorizontalParents(domVerticalLimit,_horizontalClusters)
 	return arrayOfParents;
 }
 
+/*
+ * Given an array of DOM elements, this method detects their common parent. 
+ * TODO: What happens if two elements do not share the same parent with a third? The algorithm should go back and re-compute the parent, or re-check that previous elements are also found in the second parent.
+ */
 function detectClusterParent(domVerticalLimit,_genericCluster)
 {
 	let commonParent;
