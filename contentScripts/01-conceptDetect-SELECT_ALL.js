@@ -32,7 +32,7 @@ function executeDetectionProcedure()
 	//TODO Sort the identified elements according to their horizontal order
 	//TODO Build an actual parent of the header elements, right now we just assume one of the elements as the whole line. This is just for the initial sort of the filter
 	let filteredHorizontalParents = filterHorizontalClusters(chosenDataModelHeaderElements[0],horizontalParents);
-	
+	console.log(filteredHorizontalParents);
 	//TODO pot gasi un dreptunghi care sa includa doar ce am gasit si nimic altceva?
 	//TODO cat de mic trebuie sa fie dreptunghiul astfel incat sa includa doar chestii ce le-am gasit, dar nimic altceva?
 	//TODO spatiul intre doua linii sa fie mai mic.
@@ -323,7 +323,6 @@ function filterHorizontalClusters(headerElement,_horizontalClusters)
 			let boundingCurrent = sortedClusterArray[horizontalClusterIndex].getBoundingClientRect();
 			
 			let boundingDifference = boundingCurrent.top - boundingPrevious.bottom;
-			console.log(boundingDifference +" "+incrementalAverage);
 			if (horizontalClusterIndex > 1)
 			{
 				incrementalAverage = incrementalAverage + (boundingDifference - incrementalAverage)/(horizontalClusterIndex);
@@ -349,38 +348,41 @@ function filterHorizontalClusters(headerElement,_horizontalClusters)
  */
 function detectHorizontalParents(domVerticalLimit,_horizontalClusters)
 {
-	let horizontalParents = [];
-	for (horizontalClusterIndex in _horizontalClusters)
+	let arrayOfParents = [];
+	for (clusterIndex in _horizontalClusters)
 	{
-		let horizontalCluster = [..._horizontalClusters[horizontalClusterIndex]];
-		
-		let commonParent;
-		
-		for (horizontalClusterElementIndex in horizontalCluster)
+		let clusterEntry = [..._horizontalClusters[clusterIndex]];
+		arrayOfParents.push(detectClusterParent(domVerticalLimit,clusterEntry));
+	}
+	return arrayOfParents;
+}
+
+function detectClusterParent(domVerticalLimit,_genericCluster)
+{
+	let commonParent;
+	for (clusterEntryElementIndex in _genericCluster)
+	{
+		for (clusterEntryComparedIndex in _genericCluster)
 		{
-			for (horizontalClusterComparedElementIndex in horizontalCluster)
+			//Only compare forward, do not re-check what's already been checked. Do not compare elements with themselves.
+			if (clusterEntryComparedIndex > clusterEntryElementIndex) 
 			{
-				//Only compare forward, do not re-check what's already been checked. Do not compare elements with themselves.
-				if (horizontalClusterComparedElementIndex > horizontalClusterElementIndex) 
+				let clusterElement = _genericCluster[clusterEntryElementIndex];
+				let clusterComparedElement = _genericCluster[clusterEntryComparedIndex];
+		
+				let foundParent = getClosestCommonAncestor(domVerticalLimit,clusterElement,clusterComparedElement);
+				if (commonParent === undefined)
 				{
-					let clusterElement = horizontalCluster[horizontalClusterElementIndex];
-					let clusterComparedElement = horizontalCluster[horizontalClusterComparedElementIndex];
-			
-					let foundParent = getClosestCommonAncestor(domVerticalLimit,clusterElement,clusterComparedElement);
-					if (commonParent === undefined)
-					{
-						commonParent = foundParent;
-					}
-					else if (foundParent !== commonParent)
-					{
-						console.log("Found elements that are in a line but do not share the same parent with the others! Behaviour in this scenario is yet undefined.");
-					}
+					commonParent = foundParent;
+				}
+				else if (foundParent !== commonParent)
+				{
+					console.log("Found elements that are in a line but do not share the same parent with the others! Behaviour in this scenario is yet undefined.");
 				}
 			}
 		}
-		horizontalParents.push(commonParent);
 	}
-	return horizontalParents;
+	return commonParent;
 }
 /*
  * Computes the distance between any two rectangles dictated by the parameter.
