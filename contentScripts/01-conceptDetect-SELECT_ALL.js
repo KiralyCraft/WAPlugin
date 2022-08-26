@@ -27,10 +27,11 @@ function executeDetectionProcedure()
 	let verticalClusters = clusterElementsByHeadersVertically(chosenDataModelHeaderElements,detectedTextElements);
 	
 	let horizontalClusters = clusterElementsHorizontally(verticalClusters);
+	//TODO Also include the header line in the parent detection algorithm.
 	let horizontalParents = detectHorizontalParents(SUPPOSED_ROOT,horizontalClusters);
 	//TODO Sort the identified elements according to their horizontal order
-	
-	//filterVerticalClusters(verticalClusters);
+	//TODO Build an actual parent of the header elements, right now we just assume one of the elements as the whole line. This is just for the initial sort of the filter
+	let filteredHorizontalParents = filterHorizontalClusters(chosenDataModelHeaderElements[0],horizontalParents);
 	
 	//TODO pot gasi un dreptunghi care sa includa doar ce am gasit si nimic altceva?
 	//TODO cat de mic trebuie sa fie dreptunghiul astfel incat sa includa doar chestii ce le-am gasit, dar nimic altceva?
@@ -295,45 +296,51 @@ function clusterElementsHorizontally(_verticalClusters)
 	return uniqueLineArray;
 }
 /*
- * Filter vertical elements that are obviously out of bounds.
- * 
- * TODO: still working on this. change behaviour to lines, once detected
+ * Filter horizontal parents based on their relative distance.
  */
-function filterVerticalClusters(_verticalClusters)
+function filterHorizontalClusters(headerElement,_horizontalClusters)
 {
-	for ([headerElement,entryArray] of _verticalClusters)
+	//TODO Optimize this, remove from the existing list instead of creating a new one.
+	let filteredClusters = [];
+	
+	//Sort the elements of this column based on their distance to the header entry
+	let sortedClusterArray = _horizontalClusters.sort(function sortingFunction(valueA,valueB)
 	{
-		//Sort the elements of this column based on their distance to the header entry
-		let sortedEntryArray = entryArray.sort(function sortingFunction(valueA,valueB)
+		return computeEntityDistance(headerElement,valueA) - computeEntityDistance(headerElement,valueB); 
+	})
+	
+	let incrementalAverage = 0;
+	for (horizontalClusterIndex in sortedClusterArray)
+	{
+		if (horizontalClusterIndex == 0)
 		{
-			return computeEntityDistance(headerElement,valueA) - computeEntityDistance(headerElement,valueB); 
-		})
-		
-		let incrementalAverage = 0;
-		for (columnEntryIndex in sortedEntryArray)
+			filteredClusters.push(sortedClusterArray[horizontalClusterIndex]);
+			continue; //Redundant dar ajuta la undertanding
+		}
+		else
 		{
-			if (columnEntryIndex == 0) continue; //Skip the first element
-			
-			let boundingPrevious = sortedEntryArray[columnEntryIndex-1].getBoundingClientRect();
-			let boundingCurrent = sortedEntryArray[columnEntryIndex].getBoundingClientRect();
+			let boundingPrevious = sortedClusterArray[horizontalClusterIndex-1].getBoundingClientRect();
+			let boundingCurrent = sortedClusterArray[horizontalClusterIndex].getBoundingClientRect();
 			
 			let boundingDifference = boundingCurrent.top - boundingPrevious.bottom;
-			
-			incrementalAverage = incrementalAverage + (boundingDifference - incrementalAverage)/(columnEntryIndex);
-			
-			if (columnEntryIndex > 1)
+			console.log(boundingDifference +" "+incrementalAverage);
+			if (horizontalClusterIndex > 1)
 			{
+				incrementalAverage = incrementalAverage + (boundingDifference - incrementalAverage)/(horizontalClusterIndex);
 				if (boundingDifference > 1.5*incrementalAverage)
 				{
 					break;
 				}
-				else
-				{
-					console.log(sortedEntryArray[columnEntryIndex]);
-				}
 			}
+			else
+			{
+				incrementalAverage = boundingDifference;
+			}
+			filteredClusters.push(sortedClusterArray[horizontalClusterIndex]);
 		}
 	}
+	
+	return filteredClusters;
 }
 /*
  * Given the cluster of horizontal elements, returns a cluster of parents for each set of "lines".
