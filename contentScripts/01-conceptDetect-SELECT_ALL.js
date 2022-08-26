@@ -14,7 +14,9 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
  */
 function executeDetectionProcedure()
 {
-	let detectedTextElements = filterDetectedTextElements(getTextElements(window.frames[0].document.body));
+	let SUPPOSED_ROOT = window.frames[0].document.body;
+	
+	let detectedTextElements = filterDetectedTextElements(getTextElements(SUPPOSED_ROOT));
 	let possibleTableHeaders = filterPossibleTableHeaders(detectedTextElements);
 	let dataModelMatrix = detectLikelyDataModel(possibleTableHeaders);
 	
@@ -25,6 +27,9 @@ function executeDetectionProcedure()
 	let verticalClusters = clusterElementsByHeadersVertically(chosenDataModelHeaderElements,detectedTextElements);
 	
 	let horizontalClusters = clusterElementsHorizontally(verticalClusters);
+	let horizontalParents = detectHorizontalParents(SUPPOSED_ROOT,horizontalClusters);
+	//TODO Sort the identified elements according to their horizontal order
+	
 	//filterVerticalClusters(verticalClusters);
 	
 	//TODO pot gasi un dreptunghi care sa includa doar ce am gasit si nimic altceva?
@@ -214,6 +219,7 @@ function clusterElementsByHeadersVertically(_chosenDataModelHeaderElements,_dete
 /*
  * Clusters the given elements in lines, based on their top and bottom positions.
  * Takes the vertical cluster map as an argument, and returns an array of sets, each containing elements that share the same line.
+ * TODO: What if the element is alone? Do a final check for elements that have not been covered by any line, and add them to their own line.
  */
 function clusterElementsHorizontally(_verticalClusters)
 {
@@ -329,7 +335,46 @@ function filterVerticalClusters(_verticalClusters)
 		}
 	}
 }
-
+/*
+ * Given the cluster of horizontal elements, returns a cluster of parents for each set of "lines".
+ * TODO: What happens if an element is alone on the line? For example, in a table with 3 columns, only one of them has an actual element. How do we figure what the line is? When do we know we reached a parent?
+ * TODO: What happens if two elements do not share the same parent with a third? The algorithm should go back and re-compute the parent, or re-check that previous elements are also found in the second parent.
+ */
+function detectHorizontalParents(domVerticalLimit,_horizontalClusters)
+{
+	let horizontalParents = [];
+	for (horizontalClusterIndex in _horizontalClusters)
+	{
+		let horizontalCluster = [..._horizontalClusters[horizontalClusterIndex]];
+		
+		let commonParent;
+		
+		for (horizontalClusterElementIndex in horizontalCluster)
+		{
+			for (horizontalClusterComparedElementIndex in horizontalCluster)
+			{
+				//Only compare forward, do not re-check what's already been checked. Do not compare elements with themselves.
+				if (horizontalClusterComparedElementIndex > horizontalClusterElementIndex) 
+				{
+					let clusterElement = horizontalCluster[horizontalClusterElementIndex];
+					let clusterComparedElement = horizontalCluster[horizontalClusterComparedElementIndex];
+			
+					let foundParent = getClosestCommonAncestor(domVerticalLimit,clusterElement,clusterComparedElement);
+					if (commonParent === undefined)
+					{
+						commonParent = foundParent;
+					}
+					else if (foundParent !== commonParent)
+					{
+						console.log("Found elements that are in a line but do not share the same parent with the others! Behaviour in this scenario is yet undefined.");
+					}
+				}
+			}
+		}
+		horizontalParents.push(commonParent);
+	}
+	return horizontalParents;
+}
 /*
  * Computes the distance between any two rectangles dictated by the parameter.
  */
