@@ -27,12 +27,14 @@ function executeDetectionProcedure()
 	let verticalClusters = clusterElementsByHeadersVertically(chosenDataModelHeaderElements,detectedTextElements);
 	
 	let horizontalClusters = clusterElementsHorizontally(verticalClusters);
-	//TODO Also include the header line in the parent detection algorithm.
 	let horizontalParents = detectHorizontalParents(SUPPOSED_ROOT,horizontalClusters);
 	//TODO Sort the identified elements according to their horizontal order
-	//TODO Build an actual parent of the header elements, right now we just assume one of the elements as the whole line. This is just for the initial sort of the filter
-	let filteredHorizontalParents = filterHorizontalClusters(chosenDataModelHeaderElements[0],horizontalParents);
-	console.log(filteredHorizontalParents);
+	let headerParent = detectClusterParent(SUPPOSED_ROOT,chosenDataModelHeaderElements);
+	let filteredHorizontalParents = filterHorizontalClusters(headerParent,horizontalParents);
+	let horizontalMegacluster = detectClusterParent(SUPPOSED_ROOT,filteredHorizontalParents); 
+	let tableMegacluster = detectClusterParent(SUPPOSED_ROOT,[horizontalMegacluster,headerParent]); 
+	
+	console.log(tableMegacluster);
 	//TODO pot gasi un dreptunghi care sa includa doar ce am gasit si nimic altceva?
 	//TODO cat de mic trebuie sa fie dreptunghiul astfel incat sa includa doar chestii ce le-am gasit, dar nimic altceva?
 	//TODO spatiul intre doua linii sa fie mai mic.
@@ -224,7 +226,6 @@ function clusterElementsByHeadersVertically(_chosenDataModelHeaderElements,_dete
  */
 function clusterElementsHorizontally(_verticalClusters)
 {
-	//let visitedElementsSet = new Set();
 	let horizontalClusterMap = new Map();
 	let uniqueLineArray = [];
 	
@@ -243,54 +244,44 @@ function clusterElementsHorizontally(_verticalClusters)
 				{
 					for (checkedAgainstClusterElementIndex in checkedAgainstClusterValues)
 					{
-						
 						let checkedAgainstClusterElement = checkedAgainstClusterValues[checkedAgainstClusterElementIndex];
 						
-						//if (!visitedElementsSet.has(checkedAgainstClusterElement) && !visitedElementsSet.has(checkedClusterElement))
-						//{
-							let boundingA = checkedClusterElement.getBoundingClientRect();
-							let boundingB = checkedAgainstClusterElement.getBoundingClientRect();
-							
-							if (Math.abs(boundingA.top - boundingB.top) <= (boundingA.height+boundingB.height)/2/2)
+						let boundingA = checkedClusterElement.getBoundingClientRect();
+						let boundingB = checkedAgainstClusterElement.getBoundingClientRect();
+						
+						if (Math.abs(boundingA.top - boundingB.top) <= (boundingA.height+boundingB.height)/2/2)
+						{
+							if (horizontalClusterMap.has(checkedClusterElement))
 							{
-								//visitedElementsSet.add(checkedAgainstClusterElement);
-								
-								//console.log(checkedClusterValues[checkedClusterElementIndex]);
-								//console.log(checkedAgainstClusterValues[checkedAgainstClusterElementIndex]);
-								//console.log();
-								if (horizontalClusterMap.has(checkedClusterElement))
+								let identifiedLineSet = horizontalClusterMap.get(checkedClusterElement);
+								if (!identifiedLineSet.has(checkedAgainstClusterElement))
 								{
-									let identifiedLineSet = horizontalClusterMap.get(checkedClusterElement);
-									if (!identifiedLineSet.has(checkedAgainstClusterElement))
-									{
-										identifiedLineSet.add(checkedAgainstClusterElement);
-									}
-								}
-								else if (horizontalClusterMap.has(checkedAgainstClusterElement))
-								{
-									let identifiedLineSet = horizontalClusterMap.get(checkedAgainstClusterElement);
-									if (!identifiedLineSet.has(checkedClusterElement))
-									{
-										identifiedLineSet.add(checkedClusterElement);
-									}
-								}
-								else
-								{
-									let newElementSet = new Set();
-									newElementSet.add(checkedClusterElement);
-									newElementSet.add(checkedAgainstClusterElement);
-									
-									horizontalClusterMap.set(checkedClusterElement,newElementSet);
-									horizontalClusterMap.set(checkedAgainstClusterElement,newElementSet);
-									
-									uniqueLineArray.push(newElementSet);
+									identifiedLineSet.add(checkedAgainstClusterElement);
 								}
 							}
-						//}
+							else if (horizontalClusterMap.has(checkedAgainstClusterElement))
+							{
+								let identifiedLineSet = horizontalClusterMap.get(checkedAgainstClusterElement);
+								if (!identifiedLineSet.has(checkedClusterElement))
+								{
+									identifiedLineSet.add(checkedClusterElement);
+								}
+							}
+							else
+							{
+								let newElementSet = new Set();
+								newElementSet.add(checkedClusterElement);
+								newElementSet.add(checkedAgainstClusterElement);
+								
+								horizontalClusterMap.set(checkedClusterElement,newElementSet);
+								horizontalClusterMap.set(checkedAgainstClusterElement,newElementSet);
+								
+								uniqueLineArray.push(newElementSet);
+							}
+						}
 					}
 				}
 			}
-			//visitedElementsSet.add(checkedClusterElement);
 		}
 	}
 	return uniqueLineArray;
@@ -380,7 +371,7 @@ function detectClusterParent(domVerticalLimit,_genericCluster)
 				}
 				else if (foundParent !== commonParent)
 				{
-					console.log("Found elements that are in a line but do not share the same parent with the others! Behaviour in this scenario is yet undefined.");
+					console.log("Found elements that are in a line but do not share the same parent with the others! Behaviour in this scenario is at best inaccurate.");
 				}
 			}
 		}
