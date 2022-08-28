@@ -23,10 +23,13 @@ function executeDetectionProcedure()
 	//TODO actually choose this more carefully. Right now we just assume the top-most is the one.
 	let chosenDataModel = Object.keys(dataModelMatrix)[0];
 	let chosenDataModelHeaderElements = dataModelMatrix[chosenDataModel];
-	let headerParent = detectClusterParent(SUPPOSED_ROOT,chosenDataModelHeaderElements);
 	
 	///////////////// NO-HEADER DETECTION /////////////////////
 	let elementClusterStack = detectClusterParentStack(SUPPOSED_ROOT,detectedTextElements);
+	console.log(elementClusterStack);
+	
+	return;
+	
 	/*
 	 * Detect the top-level parent of the previously identified parents. This is used as a sorting base later on.
 	 * We do not care if there are multiple, just the one that includes them all.
@@ -45,6 +48,7 @@ function executeDetectionProcedure()
 	///////////////////////////////////////////////////////////
 	return;
 	
+	let headerParent = detectClusterParent(SUPPOSED_ROOT,chosenDataModelHeaderElements);
 	let verticalClusters = clusterElementsByHeadersVertically(detectedTextElements,detectedTextElements);
 	//console.log(verticalClusters);
 
@@ -399,16 +403,16 @@ function detectHorizontalParents(domVerticalLimit,_horizontalClusters)
  */
 function detectClusterParent(domVerticalLimit,_genericCluster)
 {
-	return detectClusterParentStack(domVerticalLimit,_genericCluster)[0];
+	return detectClusterParentStack(domVerticalLimit,_genericCluster)[0][0];
 }
 /*
  * Find the common parent for all the provided elements, up to the provided limit.
- * Returns an array of parents,sorted descending based on their reciprocical inclusion hierarchy.
+ * Returns an array of [parent,[children]],sorted descending based on their reciprocical inclusion hierarchy.
  * TODO: What happens if two elements do not share the same parent with a third? The algorithm should go back and re-compute the parent, or re-check that previous elements are also found in the second parent.
  */
 function detectClusterParentStack(domVerticalLimit,_genericCluster)
 {
-	let parentStack = [];
+	let parentStackPair = [];
 	
 	for (clusterEntryElementIndex in _genericCluster)
 	{
@@ -422,9 +426,31 @@ function detectClusterParentStack(domVerticalLimit,_genericCluster)
 		
 				let foundParent = getClosestCommonAncestor(domVerticalLimit,clusterElement,clusterComparedElement);
 				
-				if (!parentStack.includes(foundParent))
+				let foundMatchingPair = false;
+				for (checkedParentPairIndex in parentStackPair)
 				{
-					parentStack.push(foundParent);
+					let checkedParentPair = parentStackPair[checkedParentPairIndex];
+					if (checkedParentPair[0] === foundParent)
+					{
+						foundMatchingPair = true;
+						
+						let childrenArray = checkedParentPair[1];
+						if (!childrenArray.includes(clusterElement))
+						{
+							childrenArray.push(clusterElement);
+						}
+						
+						if (!childrenArray.includes(clusterComparedElement))
+						{
+							childrenArray.push(clusterComparedElement);
+						}
+					}
+				}
+				
+				if (!foundMatchingPair)
+				{
+					let childrenArray = [foundParent,[clusterElement,clusterComparedElement]];
+					parentStackPair.push(childrenArray);
 				}
 			}
 		}
@@ -434,12 +460,12 @@ function detectClusterParentStack(domVerticalLimit,_genericCluster)
 	 * Sort the elements based on their inclusion order. 
 	 * Return the parent that fits all children, but also return the others as downstream entries, for further processing.
 	 */
-	parentStack.sort(function (valueA,valueB)
+	parentStackPair.sort(function (valueA,valueB)
 	{
-		return valueA.contains(valueB) * -1; //Descending; Negative boolean parsed as integer
+		return valueA[0].contains(valueB[0]) * -1; //Descending; Negative boolean parsed as integer
 	});
 	
-	return parentStack;
+	return parentStackPair;
 }
 
 /*
