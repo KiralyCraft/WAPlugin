@@ -23,13 +23,35 @@ function executeDetectionProcedure()
 	//TODO actually choose this more carefully. Right now we just assume the top-most is the one.
 	let chosenDataModel = Object.keys(dataModelMatrix)[0];
 	let chosenDataModelHeaderElements = dataModelMatrix[chosenDataModel];
+	let headerParent = detectClusterParent(SUPPOSED_ROOT,chosenDataModelHeaderElements);
 	
-	let verticalClusters = clusterElementsByHeadersVertically(chosenDataModelHeaderElements,detectedTextElements);
+	///////////////// NO-HEADER DETECTION /////////////////////
+	let elementClusterStack = detectClusterParentStack(SUPPOSED_ROOT,detectedTextElements);
+	/*
+	 * Detect the top-level parent of the previously identified parents. This is used as a sorting base later on.
+	 * We do not care if there are multiple, just the one that includes them all.
+	 */
+	let universalParentStack = detectClusterParent(SUPPOSED_ROOT,elementClusterStack);
 	
+	/*
+	 * Sort the identified parents based on their distance to the absolute, universal parent. 
+	 */
+	elementClusterStack.sort(function (valueA,valueB)
+	{
+		return getDOMAncenstorDistance(universalParentStack,valueA) - getDOMAncenstorDistance(universalParentStack,valueB);
+	});
+	
+	console.log(elementClusterStack);
+	///////////////////////////////////////////////////////////
+	return;
+	
+	let verticalClusters = clusterElementsByHeadersVertically(detectedTextElements,detectedTextElements);
+	//console.log(verticalClusters);
+
 	let horizontalClusters = clusterElementsHorizontally(verticalClusters);
 	let horizontalParents = detectHorizontalParents(SUPPOSED_ROOT,horizontalClusters);
 	//TODO Sort the identified elements according to their horizontal order
-	let headerParent = detectClusterParent(SUPPOSED_ROOT,chosenDataModelHeaderElements);
+	
 	let filteredHorizontalParents = filterHorizontalClusters(headerParent,horizontalParents);
 	let horizontalMegacluster = detectClusterParent(SUPPOSED_ROOT,filteredHorizontalParents); 
 	let tableMegacluster = detectClusterParent(SUPPOSED_ROOT,[horizontalMegacluster,headerParent]); 
@@ -47,6 +69,27 @@ function executeDetectionProcedure()
 	//TODO de vazut mai mnulte tabele in aceeasi pagina, rulam de mai multe ori si excludem alea prin care am trecut deja
 	
 	//TODO de vazut pentru fiecare element, care e top si bottom. pe baza astora, identificam liniile. unele coloane pot fi goale, dar pentru fiecare coloana zicem care sunt coloanele (pe baza top & bottom). apoi facem interclasare si reorientare 
+}
+
+/*
+ * Assuming the provided child is a certain descendant of the given parent, it returns the DOM distance (as in, layers of hierarchy) between them.
+ * If the child is not a descendant, the behaviour of this function is undefined. 
+ */
+function getDOMAncenstorDistance(_parentElement,_childToCheck)
+{
+	let currentDistance = 0;
+	let currentElement = _childToCheck;
+	while (currentElement = currentElement.parentNode) 
+	{
+		if (currentElement.isEqualNode(_parentElement))
+		{
+			return currentDistance;
+		}
+		else
+		{
+			currentDistance++;
+		}
+	}
 }
 
 /*
@@ -195,22 +238,26 @@ function clusterElementsByHeadersVertically(_chosenDataModelHeaderElements,_dete
 				
 				let columnMemberConfirmations = 0;
 				
-				//Left alignment check
-				if (Math.abs(headerElementPosition[1] - detectedElementPosition[1]) <= HORIZONTAL_THRESHOLD)
+				//Horizontal alignment check. Do not bother if the checked elementis below us.
+				if (headerElementPosition[0] <= detectedElementPosition[0])
 				{
-					columnMemberConfirmations++;
-				}
-				
-				//Central alignment check. It should not be possible for the header to be wider than the element it contains, at least when rendered visually. 
-				if (headerElementPosition[1] <= detectedElementPosition[1] &&
-					headerElementPosition[2] >= detectedElementPosition[2])
-				{
-					columnMemberConfirmations++;
-				}
-				
-				if (columnMemberConfirmations >= 1)
-				{
-					tableMatrix.get(headerElement).push(detectedElement);
+					//Left alignment check
+					if (Math.abs(headerElementPosition[1] - detectedElementPosition[1]) <= HORIZONTAL_THRESHOLD)
+					{
+						columnMemberConfirmations++;
+					}
+					
+					//Central alignment check. It should not be possible for the header to be wider than the element it contains, at least when rendered visually. 
+					if (headerElementPosition[1] <= detectedElementPosition[1] &&
+						headerElementPosition[2] >= detectedElementPosition[2])
+					{
+						columnMemberConfirmations++;
+					}
+					
+					if (columnMemberConfirmations >= 1)
+					{
+						tableMatrix.get(headerElement).push(detectedElement);
+					}
 				}
 			}
 		}
@@ -221,7 +268,7 @@ function clusterElementsByHeadersVertically(_chosenDataModelHeaderElements,_dete
 
 /*
  * Clusters the given elements in lines, based on their top and bottom positions.
- * Takes the vertical cluster map as an argument, and returns an array of sets, each containing elements that share the same line.
+ * Takes the vertical cluster map as an argument, and returns an array of arrays, each containing elements that share the same line.
  * TODO: What if the element is alone? Do a final check for elements that have not been covered by any line, and add them to their own line.
  */
 function clusterElementsHorizontally(_verticalClusters)
@@ -229,7 +276,7 @@ function clusterElementsHorizontally(_verticalClusters)
 	let horizontalClusterMap = new Map();
 	let uniqueLineArray = [];
 	
-	let verticalClusterValues = [..._verticalClusters.values()];
+	//let verticalClusterValues = [..._verticalClusters.values()];
 	
 	for (checkedClusterValues of verticalClusterValues)
 	{
@@ -349,11 +396,20 @@ function detectHorizontalParents(domVerticalLimit,_horizontalClusters)
 
 /*
  * Given an array of DOM elements, this method detects their common parent. 
- * TODO: What happens if two elements do not share the same parent with a third? The algorithm should go back and re-compute the parent, or re-check that previous elements are also found in the second parent.
  */
 function detectClusterParent(domVerticalLimit,_genericCluster)
 {
-	let commonParent;
+	return detectClusterParentStack(domVerticalLimit,_genericCluster)[0];
+}
+/*
+ * Find the common parent for all the provided elements, up to the provided limit.
+ * Returns an array of parents,sorted descending based on their reciprocical inclusion hierarchy.
+ * TODO: What happens if two elements do not share the same parent with a third? The algorithm should go back and re-compute the parent, or re-check that previous elements are also found in the second parent.
+ */
+function detectClusterParentStack(domVerticalLimit,_genericCluster)
+{
+	let parentStack = [];
+	
 	for (clusterEntryElementIndex in _genericCluster)
 	{
 		for (clusterEntryComparedIndex in _genericCluster)
@@ -365,18 +421,51 @@ function detectClusterParent(domVerticalLimit,_genericCluster)
 				let clusterComparedElement = _genericCluster[clusterEntryComparedIndex];
 		
 				let foundParent = getClosestCommonAncestor(domVerticalLimit,clusterElement,clusterComparedElement);
-				if (commonParent === undefined)
+				
+				if (!parentStack.includes(foundParent))
 				{
-					commonParent = foundParent;
-				}
-				else if (foundParent !== commonParent)
-				{
-					console.log("Found elements that are in a line but do not share the same parent with the others! Behaviour in this scenario is at best inaccurate.");
+					parentStack.push(foundParent);
 				}
 			}
 		}
 	}
-	return commonParent;
+	
+	/*
+	 * Sort the elements based on their inclusion order. 
+	 * Return the parent that fits all children, but also return the others as downstream entries, for further processing.
+	 */
+	parentStack.sort(function (valueA,valueB)
+	{
+		return valueA.contains(valueB) * -1; //Descending; Negative boolean parsed as integer
+	});
+	
+	return parentStack;
+}
+
+/*
+ * Given an array of parents and elements, return Map of arrays of children that belong to it, in no particular order.
+ * DEPRECATED
+ */
+function findParentStackFamilies(parentStack,_genericCluster)
+{
+	let parentStackMap = new Map();
+	
+	for (parentStackIndex in parentStack)
+	{
+		let parentFamilyArray = [];
+		let parentStackEntry = parentStack[parentStackIndex];
+		for (genericClusterEntryIndex in _genericCluster)
+		{
+			let genericClusterEntry = _genericCluster[genericClusterEntryIndex];
+			if (parentStackEntry.contains(genericClusterEntry))
+			{
+				parentFamilyArray.push(genericClusterEntry);
+			}
+		}
+		parentStackMap.set(parentStackEntry,parentFamilyArray);
+	}
+	
+	return parentStackMap;
 }
 /*
  * Computes the distance between any two rectangles dictated by the parameter.
