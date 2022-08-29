@@ -407,6 +407,7 @@ function filterPossibleTableHeaders(_detectedTextElements)
 /*
  * Expected to receive a two-dimensional matrix. The first index defines the concepts, and the second one represents the elements that seem to belong to that concept. 
  * It returns a sorted array of concepts, with the most likely one being top (lowest index).
+ * DEPRECATED
  */
 function detectLikelyDataModel(_conceptMatrix)
 {
@@ -421,6 +422,7 @@ function detectLikelyDataModel(_conceptMatrix)
 
 /*
  * Clusters elements in a matrix, defined by the header elements. It is very probable that the overall detected text elements also contain the headers, so this must be checked. 
+ * DEPRECATED
  */
 function clusterElementsByHeadersVertically(_chosenDataModelHeaderElements,_detectedTextElements)
 {
@@ -478,6 +480,7 @@ function clusterElementsByHeadersVertically(_chosenDataModelHeaderElements,_dete
  * Clusters the given elements in lines, based on their top and bottom positions.
  * Takes the vertical cluster map as an argument, and returns an array of arrays, each containing elements that share the same line.
  * TODO: What if the element is alone? Do a final check for elements that have not been covered by any line, and add them to their own line.
+ * DEPRECATED
  */
 function clusterElementsHorizontally(_verticalClusters)
 {
@@ -543,6 +546,7 @@ function clusterElementsHorizontally(_verticalClusters)
 }
 /*
  * Filter horizontal parents based on their relative distance.
+ * DEPRECATED
  */
 function filterHorizontalClusters(headerElement,_horizontalClusters)
 {
@@ -590,6 +594,7 @@ function filterHorizontalClusters(headerElement,_horizontalClusters)
 /*
  * Given the cluster of horizontal elements, returns a cluster of parents for each set of "lines".
  * TODO: What happens if an element is alone on the line? For example, in a table with 3 columns, only one of them has an actual element. How do we figure what the line is? When do we know we reached a parent?
+ * DEPRECATED
  */
 function detectHorizontalParents(domVerticalLimit,_horizontalClusters)
 {
@@ -699,6 +704,7 @@ function findParentStackFamilies(parentStack,_genericCluster)
 }
 /*
  * Computes the distance between any two rectangles dictated by the parameter.
+ * DEPRECATED
  */
 function computeEntityDistance(entityA,entityB)
 {
