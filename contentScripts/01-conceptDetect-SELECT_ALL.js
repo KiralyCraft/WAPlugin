@@ -49,7 +49,7 @@ function executeDetectionProcedure()
 	for (elem of elementClusterStack)
 	{
 		console.log(elem);
-		isLikelyTable(elem[1]);
+		isLikelyTable(elem);
 	}
 	///////////////////////////////////////////////////////////
 	return;
@@ -81,7 +81,54 @@ function executeDetectionProcedure()
 	//TODO de vazut pentru fiecare element, care e top si bottom. pe baza astora, identificam liniile. unele coloane pot fi goale, dar pentru fiecare coloana zicem care sunt coloanele (pe baza top & bottom). apoi facem interclasare si reorientare 
 }
 
-function isLikelyTable(_genericCluster)
+function isLikelyTable(_genericClusterPair)
+{
+	let genericCluster = _genericClusterPair[1];
+	
+	let inclusionCountMatrix = [];
+	inclusionCountMatrix[0] = 0;
+	inclusionCountMatrix[1] = 0;
+	inclusionCountMatrix[2] = 0;
+	
+	let tableArray = extractLinesAndColumns(genericCluster);
+	let lineSetArray = tableArray[0];
+	let columnSetArray = tableArray[1];
+	
+	for (genericElement of genericCluster)
+	{
+		let elementInclusionCount = 0;
+		for (lineSetEntry of lineSetArray)
+		{
+			if (lineSetEntry.has(genericElement))
+			{
+				elementInclusionCount++;
+			}
+		}
+		
+		for (columnSetEntry of columnSetArray)
+		{
+			if (columnSetEntry.has(genericElement))
+			{
+				elementInclusionCount++;
+			}
+		}
+		
+		if (elementInclusionCount > 2)
+		{
+			console.log("isLikelyTable identified an element that is assigned to more than 1 line or 1 column!");
+		}
+		inclusionCountMatrix[elementInclusionCount]++;
+	}
+	console.log(_genericClusterPair[0]);
+	console.log(_genericClusterPair[1]);
+	console.log(inclusionCountMatrix);
+}
+
+/*
+ * Given an array of elements, it returns an array of arrays of sets, corresponding to line and column groups, in this order.
+ * In the event that two elements overlap (they align both horizontally and vertically) this function returns "undefined".
+ */
+function extractLinesAndColumns(_genericCluster)
 {
 	let lineSets = new Map();
 	let columnSets = new Map();
@@ -184,7 +231,7 @@ function isLikelyTable(_genericCluster)
 				if (alignHorizontally && alignVertically)
 				{
 					console.log("Elements align both vertically and horizontally, they may be overlapping! This is not a table for sure.");
-					return false;
+					return undefined;
 				}
 				else 
 				{
@@ -201,8 +248,7 @@ function isLikelyTable(_genericCluster)
 		}
 	}
 	
-	console.log(uniqueColumnArray);
-	console.log(uniqueLineArray);
+	return [uniqueLineArray,uniqueColumnArray];
 }
 
 /*
