@@ -26,9 +26,6 @@ function executeDetectionProcedure()
 	
 	///////////////// NO-HEADER DETECTION /////////////////////
 	let elementClusterStack = detectClusterParentStack(SUPPOSED_ROOT,detectedTextElements);
-	console.log(elementClusterStack);
-	
-	return;
 	
 	/*
 	 * Detect the top-level parent of the previously identified parents. This is used as a sorting base later on.
@@ -43,8 +40,17 @@ function executeDetectionProcedure()
 	{
 		return getDOMAncenstorDistance(universalParentStack,valueA) - getDOMAncenstorDistance(universalParentStack,valueB);
 	});
+// 	pentru detectia unui tabel, vedem daca alegand un element, raman cel mult (n-1)*(n-1) elemente;
+// 	daca numarul ed elemente e prim, atunci e tabel (si daca toate se alineaza)
+// 	daca nu, incecam sa-l scriem gen [3...] x ceva, apoi vedem daca grupam elementele in linii si coloane, raman cel mult (n-1)*(m-1) pe langa? daca gasim unu din asta, facem iar, si tot asa pana am acoperit toate
+// 	daca e cazul, atunci e tabel.
 	
-	console.log(elementClusterStack);
+	
+	for (elem of elementClusterStack)
+	{
+		console.log(elem);
+		isLikelyTable(elem[1]);
+	}
 	///////////////////////////////////////////////////////////
 	return;
 	
@@ -73,6 +79,130 @@ function executeDetectionProcedure()
 	//TODO de vazut mai mnulte tabele in aceeasi pagina, rulam de mai multe ori si excludem alea prin care am trecut deja
 	
 	//TODO de vazut pentru fiecare element, care e top si bottom. pe baza astora, identificam liniile. unele coloane pot fi goale, dar pentru fiecare coloana zicem care sunt coloanele (pe baza top & bottom). apoi facem interclasare si reorientare 
+}
+
+function isLikelyTable(_genericCluster)
+{
+	let lineSets = new Map();
+	let columnSets = new Map();
+
+	function _checkHorizontalAlignment(boundingEntry,boundingComparedEntry)
+	{
+		return Math.abs(boundingComparedEntry.left - boundingEntry.left) <= 10;
+	}
+	function _checkVerticalAlignment(boundingEntry,boundingComparedEntry)
+	{
+		return Math.abs(boundingComparedEntry.top - boundingEntry.top) <= 10;
+	}
+	
+	function _executeComparisons(__theCheckedMap,__uniqueArrayOutput,__checkingFunction,__genericEntry,__genericComparedEntry)
+	{
+		/*
+		* Check if either of the elements already aligns with any of the ones inside the column map. 
+		* If it does, append them both to that set. Otherwise, create a new set.
+		*/
+		let foundAlingingSet;
+		for (toCheckElement of [__genericEntry,__genericComparedEntry])
+		{
+			if (foundAlingingSet === undefined)
+			{
+				for (mapSetKey of __theCheckedMap.keys())
+				{
+					if (__checkingFunction(toCheckElement.getBoundingClientRect(),mapSetKey.getBoundingClientRect()))
+					{
+						foundAlingingSet = __theCheckedMap.get(mapSetKey);
+						break;
+					}
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+		
+		let theAligningSet;
+		if (foundAlingingSet !== undefined)
+		{
+			theAligningSet = foundAlingingSet;
+			
+			if (!foundAlingingSet.has(__genericEntry))
+			{
+				foundAlingingSet.add(__genericEntry);
+			}
+			if (!foundAlingingSet.has(__genericComparedEntry))
+			{
+				foundAlingingSet.add(__genericComparedEntry);
+			}
+		}
+		else
+		{
+			let newElementSet = new Set();
+			
+			theAligningSet = newElementSet;
+			newElementSet.add(__genericEntry);
+			newElementSet.add(__genericComparedEntry);
+			
+			__theCheckedMap.set(__genericEntry,newElementSet);
+			__theCheckedMap.set(__genericComparedEntry,newElementSet);
+			
+			__uniqueArrayOutput.push(newElementSet);
+		}
+		__theCheckedMap.set(__genericEntry,theAligningSet);
+		__theCheckedMap.set(__genericComparedEntry,theAligningSet);
+	}
+	
+	let uniqueLineArray = [];
+	let uniqueColumnArray = [];
+	
+	let clusterElementCount = _genericCluster.length;
+	
+	for (genericEntryIndex in _genericCluster)
+	{
+		let genericEntry = _genericCluster[genericEntryIndex];
+
+		let boundingEntry = genericEntry.getBoundingClientRect();
+		for (genericComparedEntryIndex in _genericCluster)
+		{
+			if (genericComparedEntryIndex > genericEntryIndex) //Forward-only comparison
+			{
+				let genericComparedEntry = _genericCluster[genericComparedEntryIndex];
+				
+				let boundingComparedEntry = genericComparedEntry.getBoundingClientRect();
+				
+				let alignHorizontally = false;
+				let alignVertically = false;
+				if (_checkVerticalAlignment(boundingEntry,boundingComparedEntry))
+				{
+					alignVertically = true;
+				}
+				if (_checkHorizontalAlignment(boundingEntry,boundingComparedEntry))
+				{
+					alignHorizontally = true;
+				}
+				
+				if (alignHorizontally && alignVertically)
+				{
+					console.log("Elements align both vertically and horizontally, they may be overlapping! This is not a table for sure.");
+					return false;
+				}
+				else 
+				{
+					if (alignVertically)
+					{
+						_executeComparisons(lineSets,uniqueLineArray,_checkVerticalAlignment,genericEntry,genericComparedEntry);
+					}
+					else if (alignHorizontally)
+					{
+						_executeComparisons(columnSets,uniqueColumnArray,_checkHorizontalAlignment,genericEntry,genericComparedEntry);
+					}
+				}
+			}
+		}
+	}
+	
+	console.log(uniqueColumnArray);
+	console.log(uniqueLineArray);
 }
 
 /*
