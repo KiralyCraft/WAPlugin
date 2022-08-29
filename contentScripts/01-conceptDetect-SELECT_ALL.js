@@ -38,21 +38,28 @@ function executeDetectionProcedure()
 	 */
 	elementClusterStack.sort(function (valueA,valueB)
 	{
-		return getDOMAncenstorDistance(universalParentStack,valueA) - getDOMAncenstorDistance(universalParentStack,valueB);
-	});
-// 	pentru detectia unui tabel, vedem daca alegand un element, raman cel mult (n-1)*(n-1) elemente;
-// 	daca numarul ed elemente e prim, atunci e tabel (si daca toate se alineaza)
-// 	daca nu, incecam sa-l scriem gen [3...] x ceva, apoi vedem daca grupam elementele in linii si coloane, raman cel mult (n-1)*(m-1) pe langa? daca gasim unu din asta, facem iar, si tot asa pana am acoperit toate
-// 	daca e cazul, atunci e tabel.
+		return getDOMAncenstorDistance(universalParentStack,valueA[0]) - getDOMAncenstorDistance(universalParentStack,valueB[0]);
+	});	
 	
-	
+	let tableLiklinessArray = [];
 	for (elem of elementClusterStack)
 	{
-		console.log(elem);
-		isLikelyTable(elem);
+		tableLiklinessArray.push([elem,isLikelyTable(elem)]);
 	}
-	///////////////////////////////////////////////////////////
+	
+	tableLiklinessArray.sort(function (valueA,valueB)
+	{
+		return valueA[1] - valueB[1];
+	});
+	
+	for (tableLikliness of tableLiklinessArray)
+	{
+		console.log(tableLikliness[0][0]);
+		console.log(tableLikliness[1]);
+	}
+	
 	return;
+	///////////////////////////////////////////////////////////
 	
 	let headerParent = detectClusterParent(SUPPOSED_ROOT,chosenDataModelHeaderElements);
 	let verticalClusters = clusterElementsByHeadersVertically(detectedTextElements,detectedTextElements);
@@ -81,6 +88,10 @@ function executeDetectionProcedure()
 	//TODO de vazut pentru fiecare element, care e top si bottom. pe baza astora, identificam liniile. unele coloane pot fi goale, dar pentru fiecare coloana zicem care sunt coloanele (pe baza top & bottom). apoi facem interclasare si reorientare 
 }
 
+/*
+ * Given a pair of [parent,[elements]], return a percentage (0.0-1.0) corresponding to the likelyness of this element being a table. 
+ * If all elements are in a line, it returns -1.
+ */
 function isLikelyTable(_genericClusterPair)
 {
 	let genericCluster = _genericClusterPair[1];
@@ -119,9 +130,26 @@ function isLikelyTable(_genericClusterPair)
 		}
 		inclusionCountMatrix[elementInclusionCount]++;
 	}
-	console.log(_genericClusterPair[0]);
-	console.log(_genericClusterPair[1]);
-	console.log(inclusionCountMatrix);
+	
+	if (inclusionCountMatrix[0] > 0)
+	{
+		return 0.0;
+	}
+	else
+	{
+		if (inclusionCountMatrix[1] == 0 && inclusionCountMatrix[2] > 0) //If all elements are aligned in columns & lines
+		{
+			return 1.0;
+		}
+		else if (inclusionCountMatrix[2] == 0 && inclusionCountMatrix[1] > 0) //What happens if they're all in a line? Need some more checks here.
+		{
+			return -1; //TODO Hardcoded value. 
+		}
+		else if (inclusionCountMatrix[1] > 0 && inclusionCountMatrix[2] > 0)
+		{
+			return inclusionCountMatrix[2]/(inclusionCountMatrix[2] + inclusionCountMatrix[1]);
+		}
+	}
 }
 
 /*
