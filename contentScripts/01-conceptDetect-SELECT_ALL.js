@@ -14,7 +14,9 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
  */
 function executeDetectionProcedure()
 {
-	let SUPPOSED_ROOT = window.frames[0].document.body;
+	//let SUPPOSED_ROOT = window.frames[0].document.body;
+	let SUPPOSED_ROOT = document.body;
+
 	
 	let detectedTextElements = filterDetectedTextElements(getTextElements(SUPPOSED_ROOT));
 	let possibleTableHeaders = filterPossibleTableHeaders(detectedTextElements);
@@ -51,11 +53,30 @@ function executeDetectionProcedure()
 	{
 		return valueA[1] - valueB[1];
 	});
-	
+
+	let TABLE_THRESHOLD = 0.6;
+	if (tableLiklinessArray[tableLiklinessArray.length-1][1] == 1) //We definitely have a table. In this rudimentary implementaiton, this works for now.
+	{
+		TABLE_THRESHOLD = 1;
+	}
+
 	for (tableLikliness of tableLiklinessArray)
 	{
-		console.log(tableLikliness[0][0]);
-		console.log(tableLikliness[1]);
+		if (tableLikliness[1] >= TABLE_THRESHOLD)
+		{
+			tableLikliness[0][0].style.outline = '#f00 solid 4px';
+			tableLikliness[0][0].style.outlineOffset = "-4px";
+
+			let linesAndColumns = extractLinesAndColumns(tableLikliness[0][1]);
+
+			for (lineSet of linesAndColumns[0])
+			{
+				let identifiedParent = detectClusterParent(SUPPOSED_ROOT,[...lineSet.values()]);
+
+				identifiedParent.style.outline = '#00ff00 solid 2px';
+				identifiedParent.style.outlineOffset = "-6px";
+			}
+		}
 	}
 	
 	return;
