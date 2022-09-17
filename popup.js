@@ -195,9 +195,9 @@ document.addEventListener("DOMContentLoaded", function(event) {
 /*
  * Asta merge la conceptDetect-SELECT_ALL, temporar
  */
-document.querySelector('#processDOMDifferenceButtonTMP').addEventListener('click', function() {
+document.querySelector('#DetectTablesButton').addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_processDOMDifference_TMP'});
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_detectTables'});
 	});
 });
 
