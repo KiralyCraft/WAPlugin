@@ -706,7 +706,7 @@ function clusterTextElementsHorizontally(root, textElements) {
     while (textElements.length>1) {
         UNDOhighlightRowClusters(rowclusterRootTags);   // for debugging purposes
         if (feasibleClusterSet)
-            feasibleClusterSet.ancestorNodes.forEach(function(item) { // for debugging purposes - undo highlight
+            feasibleClusterSet.innerTextNodes.forEach(function(item) { // for debugging purposes - undo highlight
                 item.node.style.border = "";
             });        
         textElements[0].style.border = "2px solid magenta"; // for debugging
@@ -895,6 +895,12 @@ function clusterizeHorizontally (root, feasibleClusterSet, bottomLimitForNextRow
     //      - the ancestor nodes have the same Height
     initializeRowClusters(feasibleClusterSet);
     console.log("initializeRowClusters: " + feasibleClusterSet.clusters.length + " have been initialized.");
+    computeMaxNodesCount(feasibleClusterSet); // update feasibleClusterSet.maxNodesCountInACluster
+    // save a custom deep-copy of this feasibleClusterSet as a possible clusterization
+    // it is actually a deep-copy of the object, except the DOM elements within which are shallow copied
+    let copyFCS = copyFeasibleClusterSet(feasibleClusterSet);
+    ClusterizationResults.push(copyFCS); 
+
     let iteration = -1;
     // try to increase the number of nodes in a cluster from the feasibleClusterSet
     while (true) { // TODO: there should be a safety exit condition here
