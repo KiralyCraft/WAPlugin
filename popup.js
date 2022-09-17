@@ -192,6 +192,14 @@ document.addEventListener("DOMContentLoaded", function(event) {
 	//buildInjectors(); //Don't always force the building of injectors, because they may already be present
 });
 
+/*
+ * Asta merge la conceptDetect-SELECT_ALL, temporar
+ */
+document.querySelector('#DetectTablesButton').addEventListener('click', function() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_detectTables'});
+	});
+});
 
 document.querySelector('#processDOMDifferenceButton').addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
