@@ -601,7 +601,7 @@ function getClosestCommonAncestor(root, node1, node2) {
 
 function SerializeDOMPath(root, path) {
     let str = "";
-    for(i=0; i<path.length; i++) {
+    for(let i=0; i<path.length; i++) {
         if (path[i].isEqualNode(root)) break;
         //console.log("node:", path[i]);
         str += path[i].tagName;
@@ -705,10 +705,10 @@ function clusterTextElementsHorizontally(root, textElements) {
     let feasibleClusterSet = null;
     while (textElements.length>1) {
         UNDOhighlightRowClusters(rowclusterRootTags);   // for debugging purposes
-        if (feasibleClusterSet)
+        /*if (feasibleClusterSet)
             feasibleClusterSet.innerTextNodes.forEach(function(item) { // for debugging purposes - undo highlight
-                item.node.style.border = "";
-            });        
+                item.style.border = "";
+            });*/        
         textElements[0].style.border = "2px solid magenta"; // for debugging
 
         let savedLength = textElements.length;
@@ -752,7 +752,7 @@ function clusterTextElementsHorizontally(root, textElements) {
         if (feasibleClusterSetResult != null) {
             // compute leftover nodes from the clusterization solution (i.e. nodes that do not belong to any cluster)
             let leftoverNodes = [];
-            for(j=0; j<feasibleClusterSetResult.ancestorNodes.length; j++) {
+            for(let j=0; j<feasibleClusterSetResult.ancestorNodes.length; j++) {
                 if (feasibleClusterSetResult.ancestorNodes[j].cluster < 0) {
                     leftoverNodes.push(feasibleClusterSetResult.innerTextNodes[j]);
                 }
@@ -766,7 +766,7 @@ function clusterTextElementsHorizontally(root, textElements) {
                     return 0;
                 else return 1;
             });
-            for(j=0; j<leftoverNodes.length; j++) {
+            for(let j=0; j<leftoverNodes.length; j++) {
                 textElements.unshift(leftoverNodes[j]);
 /*TODO: Remove this*/  leftoverNodes[j].style.border = ""; // for debugging
             }
@@ -842,7 +842,7 @@ function clusterizeHorizontally (root, feasibleClusterSet, bottomLimitForNextRow
 
     function getAncestorNodesFromCluster(feasibleClusterSet, clusterNo) {
         let indexes = [];
-        for(i=0; i<feasibleClusterSet.ancestorNodes.length; i++) {
+        for(let i=0; i<feasibleClusterSet.ancestorNodes.length; i++) {
             if (feasibleClusterSet.ancestorNodes[i].cluster == clusterNo) {
                 indexes.push(i);
             }
@@ -852,9 +852,9 @@ function clusterizeHorizontally (root, feasibleClusterSet, bottomLimitForNextRow
 
     function computeMaxNodesCount(feasibleClusterSet) {
         feasibleClusterSet.maxNodesCountInACluster = 0;
-        for(i=0; i<feasibleClusterSet.clusters.length; i++) {
+        for(let i=0; i<feasibleClusterSet.clusters.length; i++) {
             let clusterNodeCount = 0;
-            for (j=0; j<feasibleClusterSet.ancestorNodes.length; j++) {
+            for (let j=0; j<feasibleClusterSet.ancestorNodes.length; j++) {
                 if (feasibleClusterSet.ancestorNodes[j].cluster == feasibleClusterSet.clusters[i])
                         clusterNodeCount++;
             }
@@ -870,8 +870,8 @@ function clusterizeHorizontally (root, feasibleClusterSet, bottomLimitForNextRow
     // first, sort text nodes based on their Left postion
     // of course, don't forget to sort also the corresponding values from ancestorNodes
     // TODO: I don't think this is needed anymore
-    for (i=0; i<feasibleClusterSet.innerTextNodes.length-1; i++)
-        for(j=i+1; j<feasibleClusterSet.innerTextNodes.length; j++) {
+    for (let i=0; i<feasibleClusterSet.innerTextNodes.length-1; i++)
+        for(let j=i+1; j<feasibleClusterSet.innerTextNodes.length; j++) {
             if (feasibleClusterSet.innerTextNodes[i].getBoundingClientRect().left >
                 feasibleClusterSet.innerTextNodes[j].getBoundingClientRect().left) {
                 let aux = feasibleClusterSet.innerTextNodes[i];
@@ -936,7 +936,7 @@ function clusterizeHorizontally (root, feasibleClusterSet, bottomLimitForNextRow
         let nodeSet = filterDetectedTextElements(getTextElements(
                             feasibleClusterSet.ancestorNodes[maxTopidx].node));
         if (nodeSet.length > 1) {
-            for(i=0; i<nodeSet.length; i++) {
+            for(let i=0; i<nodeSet.length; i++) {
                 if (nodeSet[i].getBoundingClientRect().Top < feasibleClusterSet.minTop) {
                     feasibleClusterSet.ancestorNodes[maxTopidx].cluster = -2; // unusable node
                     break;
@@ -1038,7 +1038,7 @@ function clusterizeHorizontally (root, feasibleClusterSet, bottomLimitForNextRow
      */
     let maxCount = 0;
     let maxCountIdx = -1;
-    for(i=0; i<ClusterizationResults.length; i++) {
+    for(let i=0; i<ClusterizationResults.length; i++) {
         if (ClusterizationResults[i].maxNodesCountInACluster >= maxCount) {
             maxCount = ClusterizationResults[i].maxNodesCountInACluster;
             maxCountIdx = i;
@@ -1055,9 +1055,9 @@ function clusterizeHorizontally (root, feasibleClusterSet, bottomLimitForNextRow
 function clusterizeHorizontally_ver1 (root, feasibleClusterSet, bottomLimitForNextRowCluster) {
     function computeMaxNodesCount(feasibleClusterSet) {
         feasibleClusterSet.maxNodesCountInACluster = 0;
-        for(i=0; i<feasibleClusterSet.clusters.length; i++) {
+        for(let i=0; i<feasibleClusterSet.clusters.length; i++) {
             let clusterNodeCount = 0;
-            for (j=0; j<feasibleClusterSet.ancestorNodes.length; j++) {
+            for (let j=0; j<feasibleClusterSet.ancestorNodes.length; j++) {
                 if (feasibleClusterSet.ancestorNodes[j].cluster == feasibleClusterSet.clusters[i])
                         clusterNodeCount++;
             }
@@ -1070,8 +1070,8 @@ function clusterizeHorizontally_ver1 (root, feasibleClusterSet, bottomLimitForNe
 
     // first, sort text nodes based on their Left postion
     // TODO: I don't think this is needed anymore
-    for (i=0; i<feasibleClusterSet.innerTextNodes.length-1; i++)
-        for(j=i+1; j<feasibleClusterSet.innerTextNodes.length; j++) {
+    for (let i=0; i<feasibleClusterSet.innerTextNodes.length-1; i++)
+        for(let j=i+1; j<feasibleClusterSet.innerTextNodes.length; j++) {
             if (feasibleClusterSet.innerTextNodes[i].getBoundingClientRect().left >
                 feasibleClusterSet.innerTextNodes[j].getBoundingClientRect().left) {
                 let aux = feasibleClusterSet.innerTextNodes[i];
@@ -1090,7 +1090,7 @@ function clusterizeHorizontally_ver1 (root, feasibleClusterSet, bottomLimitForNe
     //      - they have a common ancestor
 
     // update all ancestorNodes to their parents
-    for(i=0; i<feasibleClusterSet.ancestorNodes.length; i++) {
+    for(let i=0; i<feasibleClusterSet.ancestorNodes.length; i++) {
         feasibleClusterSet.ancestorNodes[i].node = feasibleClusterSet.ancestorNodes[i].node.parentNode;
     }
 
@@ -1217,11 +1217,11 @@ function clusterRowsVertically(root, rowClustersList) {
         let rowCandidate2 = rowClustersList[i+1];
         // Theoretically, each rowCandidate can have multiple clusters, but in practice, there is actually 
         // only one cluster (i.e. rowCandidate1.clusters.length=1)
-        for(j=0; j<rowCandidate1.clusters.length; j++) {
+        for(let j=0; j<rowCandidate1.clusters.length; j++) {
             if (!rowCandidate1.clusterAvailability[j]) continue;
             let foundTable = null;
             // discover a table which starts with row rowCandidate1.rowclusterRoots[j] 
-            for(k=0; k<rowCandidate2.clusters.length; k++) {
+            for(let k=0; k<rowCandidate2.clusters.length; k++) {
                 if (rowCandidate2.clusterAvailability[k] &&
                     checkConsecutiveRowsInTable(rowCandidate1.rowclusterRoots[j], 
                                                 rowCandidate2.rowclusterRoots[k])) {
@@ -1281,7 +1281,7 @@ function clusterRowsVertically(root, rowClustersList) {
 function highlightRowClusterNodes(feasibleClusterSetResult) {
     feasibleClusterSetResult.clusters.forEach(function(clusterNo) {
         let randomColor = Math.floor(Math.random()*16777215).toString(16);
-        for(i=0; i<feasibleClusterSetResult.ancestorNodes.length; i++) {
+        for(let i=0; i<feasibleClusterSetResult.ancestorNodes.length; i++) {
             if (feasibleClusterSetResult.ancestorNodes[i].cluster == clusterNo) {
                 feasibleClusterSetResult.ancestorNodes[i].node.style.border = "1px solid #" + randomColor;
             }
@@ -1291,7 +1291,7 @@ function highlightRowClusterNodes(feasibleClusterSetResult) {
 
 
 function highlightRowClusters(rowclusterRootTags) {
-    for(i=0; i<rowclusterRootTags.length; i++) {
+    for(let i=0; i<rowclusterRootTags.length; i++) {
         if (rowclusterRootTags[i] != null) {
             let red = 180 + Math.floor(Math.random()*60);
             let green = 180 + Math.floor(Math.random()*60);
@@ -1303,7 +1303,7 @@ function highlightRowClusters(rowclusterRootTags) {
 }
 
 function UNDOhighlightRowClusters(rowclusterRootTags) {
-    for(i=0; i<rowclusterRootTags.length; i++) {
+    for(let i=0; i<rowclusterRootTags.length; i++) {
         if (rowclusterRootTags[i] != null) {
             rowclusterRootTags[i].style.background = "";
         }
@@ -1312,10 +1312,10 @@ function UNDOhighlightRowClusters(rowclusterRootTags) {
 
 function computeRowClusterRootTags(root, feasibleClusterSetResult) {
     let rowclusterRoots = [];
-    for (i=0; i<feasibleClusterSetResult.clusters.length; i++) {
+    for (let i=0; i<feasibleClusterSetResult.clusters.length; i++) {
         let clusterNo = feasibleClusterSetResult.clusters[i];
         let clusterCommonAncestor = null;
-        for(j=0; j<feasibleClusterSetResult.ancestorNodes.length; j++) {
+        for(let j=0; j<feasibleClusterSetResult.ancestorNodes.length; j++) {
             if (feasibleClusterSetResult.ancestorNodes[j].cluster == clusterNo) {
                 if (clusterCommonAncestor == null) {
                     clusterCommonAncestor = feasibleClusterSetResult.ancestorNodes[j].node;
@@ -1339,7 +1339,7 @@ function computeRowClusterRootTags(root, feasibleClusterSetResult) {
 
 function computeTableRootTag(root, table) {
     let tableCommonAncestor = null;
-    for (i=0; i<table.length; i++) {
+    for (let i=0; i<table.length; i++) {
         if (tableCommonAncestor == null) {
             tableCommonAncestor = table[i].rowclusterRoot;
         } else {
@@ -1386,7 +1386,7 @@ function copyFeasibleClusterSet(feasibleClusterSet) {
     let copy = { ...feasibleClusterSet};
     copy.innerTextNodes = [...feasibleClusterSet.innerTextNodes];
     copy.ancestorNodes = [];
-    for(i=0; i<feasibleClusterSet.ancestorNodes.length; i++) {
+    for(let i=0; i<feasibleClusterSet.ancestorNodes.length; i++) {
         copy.ancestorNodes[i] = { ...feasibleClusterSet.ancestorNodes[i] };
     }
     copy.clusters = [...feasibleClusterSet.clusters];
