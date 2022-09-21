@@ -704,7 +704,7 @@ function clusterTextElementsHorizontally(root, textElements) {
     let rowclusterRootTags = [];
     let feasibleClusterSet = null;
     while (textElements.length>1) {
-        UNDOhighlightRowClusters(rowclusterRootTags);   // for debugging purposes
+        //UNDOhighlightRowClusters(rowclusterRootTags);   // for debugging purposes
         /*if (feasibleClusterSet)
             feasibleClusterSet.innerTextNodes.forEach(function(item) { // for debugging purposes - undo highlight
                 item.style.border = "";
@@ -1157,8 +1157,33 @@ function initializeRowClusters(feasibleClusterSet) {
     console.log("initializeRowClusters: ", feasibleClusterSet.ancestorNodes);
 }
 
-function clusterRowsVertically(root, rowClustersList) { 
-    function checkConsecutiveRowsInTable(rowclusterRootTag1, rowclusterRootTag2) {
+function clusterRowsVertically(root, rowClustersList) {
+    function checkColumnAlignments(tablerow1, tablerow2) {
+        const HORIZONTAL_TABLE_THRESHOLD = 10; // 10px 
+        let noOfColumns = 0;
+        let noOfMatches = 0;
+        for(let i=0; i<tablerow2.ancestorNodes.length; i++) {
+            if (tablerow2.ancestorNodes[i].cluster == tablerow2.clusters[tablerow2.rowclusterIndex]) {
+                rect1 = tablerow2.innerTextNodes[i].getBoundingClientRect();
+                noOfColumns++;
+                for(let j=0; j<tablerow1.ancestorNodes.length; j++) {
+                    if (tablerow1.ancestorNodes[j].cluster == tablerow1.clusters[tablerow1.rowclusterIndex]) {
+                        rect2 = tablerow1.innerTextNodes[j].getBoundingClientRect();
+                        if ((rect1.left > rect2.left - HORIZONTAL_TABLE_THRESHOLD) && 
+                            (rect1.left < rect2.left + HORIZONTAL_TABLE_THRESHOLD)) {
+                            noOfMatches++;
+                        }
+                    }
+                }
+            }
+        }
+        return noOfMatches;        
+    }
+
+    function checkConsecutiveRowsInTable(firstrow, tablerow1, tablerow2) {
+        if ((firstrow==null) || (tablerow1==null) || (tablerow2==null)) return false;
+        let rowclusterRootTag1 = tablerow1.rowclusterRoot;
+        let rowclusterRootTag2 = tablerow2.rowclusterRoot;
         if ((rowclusterRootTag1==null) || (rowclusterRootTag1==root)) return false;
         if ((rowclusterRootTag2==null) || (rowclusterRootTag2==root)) return false;
         /* two rowclusters, rowclusterRootTag1 and rowclusterRootTag2 belong to the same table 
@@ -1171,7 +1196,7 @@ function clusterRowsVertically(root, rowClustersList) {
         let rect1 = rowclusterRootTag1.getBoundingClientRect();
         let rect2 = rowclusterRootTag2.getBoundingClientRect();
         let minHeight = rect1.height<rect2.height ? rect1.height : rect2.height;
-        const VERTICAL_TABLE_THRESHOLD = minHeight / 4;
+        const VERTICAL_TABLE_THRESHOLD = minHeight * 2;
 
         if ((rect1.left < rect2.left - HORIZONTAL_TABLE_THRESHOLD) || 
             (rect2.left < rect1.left - HORIZONTAL_TABLE_THRESHOLD)) {
@@ -1193,6 +1218,20 @@ function clusterRowsVertically(root, rowClustersList) {
                 return false;
         }
 
+        // check column alignments - we check Left position alignments
+        /*let tablerow = { rowclusterRoot : rowCandidate2.rowclusterRoots[k],
+                           rowclusterIndex : k,
+                           innerTextNodes : rowCandidate2.innerTextNodes,
+                           ancestorNodes : rowCandidate2.ancestorNodes,
+                           clusters : rowCandidate2.clusters};
+        */
+/*        if (checkColumnAlignments(tablerow1, tablerow2)<2) {
+            // we verify tablerow2 against firstrow
+            if (checkColumnAlignments(tablerow1, tablerow2)<2) {
+                return false;
+            }
+        }
+*/
         console.log("checkConsecutiveRowsInTable() - TRUE: ", rowclusterRootTag1, rowclusterRootTag2);
         return true;
     }
@@ -1220,23 +1259,22 @@ function clusterRowsVertically(root, rowClustersList) {
         for(let j=0; j<rowCandidate1.clusters.length; j++) {
             if (!rowCandidate1.clusterAvailability[j]) continue;
             let foundTable = null;
+            let InitialTablerow = { rowclusterRoot : rowCandidate1.rowclusterRoots[j],
+                                    rowclusterIndex : j,
+                                    innerTextNodes : rowCandidate1.innerTextNodes,
+                                    ancestorNodes : rowCandidate1.ancestorNodes,
+                                    clusters : rowCandidate1.clusters};
             // discover a table which starts with row rowCandidate1.rowclusterRoots[j] 
             for(let k=0; k<rowCandidate2.clusters.length; k++) {
-                if (rowCandidate2.clusterAvailability[k] &&
-                    checkConsecutiveRowsInTable(rowCandidate1.rowclusterRoots[j], 
-                                                rowCandidate2.rowclusterRoots[k])) {
-                    foundTable = [];
-                    let tablerow = { rowclusterRoot : rowCandidate1.rowclusterRoots[j],
-                                     rowclusterIndex : j,
-                                     innerTextNodes : rowCandidate1.innerTextNodes,
-                                     ancestorNodes : rowCandidate1.ancestorNodes,
-                                     clusters : rowCandidate1.clusters};
-                    foundTable.push(tablerow);
-                    tablerow = { rowclusterRoot : rowCandidate2.rowclusterRoots[k],
+                let tablerow = { rowclusterRoot : rowCandidate2.rowclusterRoots[k],
                                  rowclusterIndex : k,
                                  innerTextNodes : rowCandidate2.innerTextNodes,
                                  ancestorNodes : rowCandidate2.ancestorNodes,
                                  clusters : rowCandidate2.clusters};
+                if (rowCandidate2.clusterAvailability[k] && 
+                    checkConsecutiveRowsInTable(InitialTablerow, InitialTablerow, tablerow)) {
+                    foundTable = [];
+                    foundTable.push(InitialTablerow);
                     foundTable.push(tablerow);
                     rowCandidate1.clusterAvailability[j] = false;
                     rowCandidate2.clusterAvailability[k] = false;
@@ -1249,17 +1287,17 @@ function clusterRowsVertically(root, rowClustersList) {
                 let tableNotDone = true;
                 while (tableNotDone && (m<rowClustersList.length)) {
                     tableNotDone = false;
-                    let lastTableRowRoot = foundTable[foundTable.length-1].rowclusterRoot;
+                    let lastTableRow = foundTable[foundTable.length-1];
+                    let lastRowClusterIndex = foundTable[foundTable.length-1].rowclusterIndex;
                     let rowCandidate = rowClustersList[m];
                     for (n=0; n<rowCandidate.clusters.length; n++) {
-                        if (rowCandidate.clusterAvailability[n] && 
-                            checkConsecutiveRowsInTable(lastTableRowRoot, rowCandidate.rowclusterRoots[n])) {
+                        let tablerow = { rowclusterRoot : rowCandidate.rowclusterRoots[n],
+                                         rowclusterIndex : n,
+                                         innerTextNodes : rowCandidate.innerTextNodes,
+                                         ancestorNodes : rowCandidate.ancestorNodes,
+                                         clusters : rowCandidate.clusters};
+                        if (rowCandidate.clusterAvailability[n] && checkConsecutiveRowsInTable(foundTable[0], lastTableRow, tablerow)) {
                             rowCandidate.clusterAvailability[n] = false;
-                            let tablerow = { rowclusterRoot : rowCandidate.rowclusterRoots[n],
-                                             rowclusterIndex : n,
-                                             innerTextNodes : rowCandidate.innerTextNodes,
-                                             ancestorNodes : rowCandidate.ancestorNodes,
-                                             clusters : rowCandidate.clusters};
                             foundTable.push(tablerow);
                             tableNotDone = true;
                             break;
