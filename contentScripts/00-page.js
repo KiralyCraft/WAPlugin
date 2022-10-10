@@ -1172,6 +1172,7 @@ function clusterRowsVertically(root, rowClustersList) {
                         if ((rect1.left > rect2.left - HORIZONTAL_TABLE_THRESHOLD) && 
                             (rect1.left < rect2.left + HORIZONTAL_TABLE_THRESHOLD)) {
                             noOfMatches++;
+                            break;
                         }
                     }
                 }
@@ -1225,13 +1226,13 @@ function clusterRowsVertically(root, rowClustersList) {
                            ancestorNodes : rowCandidate2.ancestorNodes,
                            clusters : rowCandidate2.clusters};
         */
-/*        if (checkColumnAlignments(tablerow1, tablerow2)<2) {
+        if (checkColumnAlignments(tablerow1, tablerow2)<2) {
             // we verify tablerow2 against firstrow
-            if (checkColumnAlignments(tablerow1, tablerow2)<2) {
+            if (checkColumnAlignments(firstrow, tablerow2)<2) {
                 return false;
             }
         }
-*/
+
         console.log("checkConsecutiveRowsInTable() - TRUE: ", rowclusterRootTag1, rowclusterRootTag2);
         return true;
     }

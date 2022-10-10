@@ -201,10 +201,65 @@ entitatii din Data Model)
 
 
 Idei de articole:
-- Construirea de building blocks atomice de operatii pentru automatizarea unei aplicatii web de business
-  [ descriem procese complexe in BPMN folosind building blocksurile atomice]
-- Construirea hartii unei aplicatii web de business (harta completa, nu doar building blocks)
-- Determinarea modelului de date din UI-ul aplicatiei web pentru automatizare
-- Automatizari naturale ale aplicatiilor web dinamice (comenzi date in NLP)
-  [ descriu cum ar functiona un robot RPA pe baza la toate lucrurile determinate mai sus ]
+1) Construirea hartii unei aplicatii web de business (harta aproape completa, nu doar 
+blockuri atomice CRUD)
+- continut articol: 
+        o descrie cum functioneaza un plugin de browser care construieste semiautomat o harta 
+          conceptuala a intregii aplicatii; blocuri atomice pt. operatii CRUD sunt detectate
+          automat, pt. restul de use caseuri ale aplicatiei userul construieste harta acestor use 
+          caseuri cu ajutorul pluginului care il lasa pe user sa deseneze harta
+        o cum se reprezinta o astfel de harta? ca un graf; o parte din elementele grafului
+          reprezinta elemente de blocuri atomice CRUD, altele reprezinta alte elemente - ne
+          trebuie o taxonomie aici a nodurilor din graf si a ID-urilor acelori noduri, unele
+          corespunzand unor elemente de UI ale aplicatiei
+- utilitate concept, originalitate: harta generata se poate folosi ca documentatie/manual sau 
+pentru un robot RPA care poate executa blocuri atomice CRUD
+- future improvement: pluginul sa genereze automat toata harta, nu doar operatiile CRUD
+2) Construirea de building blocks atomice de operatii CRUD pentru automatizarea unei aplicatii 
+web de business
+- continut articol: 
+        o descriem niste modele/template-uri pentru aceste building blocks atomice care sa
+        fie destul de generice pt. a fi aplicabile oricarei aplicatii web de tip CRM; aceste
+        modele sunt descrise sub forma grafica (UML/BPMN like)
+        o cum se reprezinta aceste building blocks atomice - ca instante a acelor template-uri;
+        cai relative sau absolute in aplicatie ?
+        o descriem posibile procese complexe in BPMN folosind building blocksurile atomice
+        (introducem operatii pentru a conecta mai multe building blocuri atomice, e.g. AND,
+        OR, IF, etc.)
+- utilitate concept, originalitate: ideea de a putea descrie operatii complexe pentru un
+eventual robot RPA, folosindu-ne de building blocks atomice pt. operatii CRUD; comparam
+cu UiPath in care pentru a descrie o operatie automatizabila, trebuie sa indicam fiecare
+field si fiecare buton pe care il actionam; aici nu trebuie, doar trebuie sa indicam
+building blocksuri si sa le unim; in articolul 1), aceste building blocks atomice
+pt. operatii CRUD nu sunt evidentiate, in articolul nr. 2 ele sunt piesa centrala
+(in articolul 1) avem doar grafe, aici avem niste modele template pentru building blocks)
+- posibile deficiente: eu as lasa constructia si arhitectura robotului RPA care sa
+execute aceste procese complexe pt. un articol urmator (vezi articolul 4), dar s-ar putea 
+sa fie prea putin in acest articol
+TODO: Cred ca ar putea fi 2 articole pe ideea asta; unul in care omul navigheaza si
+pluginul invata building block-urile de navigare din ceea ce face omul; al doilea
+articol face navigare automata si pluginul trebuie sa se prinda sa nu strice
+BD-ul aplicatiei si sa elimine use case-urile non-CRUD.
+3) Determinarea automata modelului de date din UI-ul aplicatiei web pentru automatizare
+- continut articol: spunem ca intr-un articol precedent am dezv. un plugin browser
+care determina semi-automat harta conceptuala a aplicatiei web, dar trebuie sa ii precizam
+ca intrare Data Model-ul aplicatiei web; in acest articol determinam automat data modelul aplicatiei
+4) Automatizari naturale ale aplicatiilor web dinamice (comenzi date in NLP)
+- continut articol:  descriu cum ar functiona un robot RPA pe baza la toate lucrurile 
+determinate mai sus (i.e. building blocks atomice pt operatii CRUD) si cu interfata cu utilizatorul
+NLP; descriu arhitectura acestui robot RPA si il si construiesc (codul nu e mult diferit de 
+codul pluginului de browser de la articolele 1) si 2))
+
+5) Alte idei:
+- Cum putem sa il invatam pe plugin: sa adaugam noi componente de harta pe langa cele
+detectate automat sau sa editam/corectam componente de harta detectate automat ?
+- Compunere de procese complexe peste mai multe aplicatii, nu doar una singura, folosindu-ne
+de building blocks atomice pentru fiecare aplicatie web in parte (orchestrare building blocks
+atomice inter-aplicatii, reprezentarea acestora fara name clashing)
+- Detectia operatiilor (use caseurilor) distructive intr-o aplicatie web - i.e. cele care sterg entitati
+- Sugestii pentru procese executabile: avem un robot RPA care primeste spre executie
+specificari de procese in limbaj NLP; pe baza istoricului de procese executate pentru acelasi user
+uman, robotul RPA poate sa sugereze completions pentru prefixe de procese introduse de user
+(asemanator de query completion and suggestion de pe Google sau alt motor de cautare)
+
 ====================================================================================================
