@@ -162,7 +162,7 @@ function processDOMDifference() {
     let fullDOM = window.frames[0].document.body.innerHTML;
     let innerText = window.frames[0].document.body.innerText;
     let root = getDocumentRoot();
-    let textElements = getTextElements(root.body);
+    let textElements = getTextElements(root.body, true /*only visible elements*/);
     
     console.log("textElements are:");
     textElements.forEach(function(node) {
@@ -183,6 +183,10 @@ function processDOMDifference() {
     // detect concept and operation on concept/entity
     let detectedConceptOperation = detectConceptAndOperation(textElementsWithInputs);
     console.log("Concept detected: ", detectedConceptOperation);
+
+    // detectam atribute Foreign Keys
+    detectForeignKeyFields(detectedConceptOperation.concept, textElements, root);
+
     return detectedConceptOperation;
 }
 
@@ -223,7 +227,7 @@ function getTextElements(root, onlyVisibleNodes=false) {
     * in this case, we take all Node.TEXT_NODE children and wrap them around
     * <SPAN></SPAN> tags.
     * Normally, this code should only be executed once for the currently loaded 
-    * document. For now, we leave it lite this, being executed each time the
+    * document. For now, we leave it like this, being executed each time the
     * getTextElements() function is being called.
     */
     root.querySelectorAll("*").forEach(function(item) {
@@ -359,7 +363,8 @@ function getAssociatedInputElements(root, textElements) {
 function detectConcept(text) {
     let detectedConcept = "";
 
-    for (concept in DataModel) { 
+    for (concept in DataModel) {
+        if (concept=="ForeignKeys") continue; 
         console.log(concept, DataModel[concept]);
         let occurences = 0;
         for (property of DataModel[concept]) {
@@ -390,7 +395,9 @@ function detectConceptAndOperation(textElementsWithInputs) {
      */
     let detectedConceptOperation = {"concept" : null, "operation" : null};
     
-    for (concept in DataModel) { 
+    for (concept in DataModel) {
+        if (concept=="ForeignKeys") continue; 
+
         console.log(concept, DataModel[concept]);
         let attributeOccurences = 0;
         let inputNodesCount = 0;
@@ -399,7 +406,7 @@ function detectConceptAndOperation(textElementsWithInputs) {
             let i = 0;
             while (i<textElementsWithInputs.length) {
                 if (textElementsWithInputs[i].textNode && 
-                    textElementsWithInputs[i].textNode.innerText.includes(property)) {
+                    textElementsWithInputs[i].textNode.innerText.toLowerCase().includes(property.toLowerCase())) {
                     
                     attributeOccurences++;
                     if (textElementsWithInputs[i].inputNode && 
@@ -416,7 +423,7 @@ function detectConceptAndOperation(textElementsWithInputs) {
                 }
                 i++;
             }
-            //console.log(property, occurences);
+            console.log(property, attributeOccurences);
         };
         console.log("attributeOccurences=", attributeOccurences, " noOfProperties=", DataModel[concept].length);
         if (attributeOccurences==DataModel[concept].length) {
@@ -435,6 +442,80 @@ function detectConceptAndOperation(textElementsWithInputs) {
 
     return detectedConceptOperation;
 };
+
+function detectForeignKeyFields(concept, textElements, root) {
+    let FKarray = [];
+    DataModel["ForeignKeys"].forEach(function(entry) {
+        if (entry.ForeignTable==concept) {
+            let txtElem = null;
+            textElements.forEach(function(textNode) {
+                if (textNode.innerText.toLowerCase().includes("company"))
+                    console.log(textNode.innerText.toLowerCase(), " - ", textNode);
+                if (entry.ForeignKey.toLowerCase()==textNode.innerText.toLowerCase()) {
+                    txtElem = textNode;
+                }
+            })
+            if (txtElem != null) {
+                FKarray.push({ForeignKey: entry.ForeignKey, TextElem : txtElem}); 
+            };
+        }
+    });
+
+    console.log("detectForeignKeyFields(): ", FKarray);
+
+    let i=0;
+    for(i=0; i<FKarray.length; i++) {
+        // search for elements on the South-East quadrants of the textElement containing the ForeignKey
+        root.querySelectorAll("*").forEach(function(node) {
+            if (!isElementVisible()) return;
+        
+            let nodePosition = node.getBoundingClientRect();
+            let relativePosition = null;
+            let textNodePosition = FKarray[i].TextElem.getBoundingClientRect();
+            let maxAcceptableDistance = textNodePosition.width > textNodePosition.height ?
+                                        textNodePosition.width : textNodePosition.height; 
+            let distance; 
+            let pos = null;
+            if ((textNodePosition.right <= nodePosition.left) &&
+                (textNodePosition.top <= nodePosition.top) && 
+                (textNodePosition.bottom > nodePosition.top)) {
+                /* inputNode is on the (right & !below) of the textNode;
+                 * so we compute the distance between textNode(top,right)
+                 * and inputNode(top,left) corners.
+                 */
+                distance = (nodePosition.top - textNodePosition.top) +
+                           (nodePosition.left - textNodePosition.right);
+                pos = "right&!below";
+            } else if ((textNodePosition.right > nodePosition.left) &&
+                (textNodePosition.left <= nodePosition.left) && 
+                (textNodePosition.bottom <= nodePosition.top)) {
+                /* inputNode is on the (!right & below) of the textNode;
+                 * so we compute the distance between textNode(bottom,left)
+                 * and inputNode(top,left) corners.
+                 */
+                distance = (nodePosition.top - textNodePosition.bottom) +
+                           (nodePosition.left - textNodePosition.left);
+                pos = "!right&below";
+            } else if ((textNodePosition.right <= nodePosition.left) &&
+                (nodePosition.bottom <= nodePosition.top)) {
+                /* inputNode is on the (right & below) of the textNode;
+                 * so we compute the distance between textNode(bottom,right)
+                 * and inputNode(top,left) corners.
+                 */
+                distance = (nodePosition.top - textNodePosition.bottom) +
+                           (nodePosition.left - textNodePosition.right);
+                pos = "right&below";
+            } // else { we do not care .. }
+
+            
+            if (distance <= maxAcceptableDistance) {
+                    node.style.border = "1px solid black";
+            } 
+
+        });
+    }
+        
+}
 
 
 function highlightElements(nodes, color) {
@@ -624,10 +705,19 @@ function getDocumentRoot() {
     let root = document;
     let i = 0;
     while (i<window.frames.length) {
+        // hack pentru Ms Dynamics 2016 CRM (nu ar trebui sa fie nevoie de asta daca implementam
+        // cod care sa caute root/text/inputElements/table/orice doar in diff-ul de DOM (elem.
+        // care nu au atributul "taskmateID"))
+        if (window.frames[i].frameElement.getAttribute("id") == "NavBarGloablQuickCreate") {
+            i++;
+            continue;
+        }
+
         // set as root the last iframe that is visible
         if (window.frames[i]) {
             //let style = window.getComputedStyle(document.getElementsByTagName("iframe")[i]);
             let style = window.getComputedStyle(window.frames[i].frameElement);
+            console.log("getDocumentRoot(): frame=", window.frames[i].frameElement);
             if ((style.visibility != "hidden") && (style.display != "none")) {
                 root = window.frames[i].document;
                 console.log("Root element is the " + i + "-th frame.");
