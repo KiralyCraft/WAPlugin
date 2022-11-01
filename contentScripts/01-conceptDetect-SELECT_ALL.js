@@ -17,8 +17,8 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
  */
 function executeDetectionProcedure()
 {
-	//let SUPPOSED_ROOT = window.frames[0].document.body;
-	let SUPPOSED_ROOT = document.body;
+	let SUPPOSED_ROOT = window.frames[0].document.body;
+	//let SUPPOSED_ROOT = document.body;
 
 	
 	let detectedTextElements = filterDetectedTextElements(getTextElements(SUPPOSED_ROOT));
@@ -31,13 +31,13 @@ function executeDetectionProcedure()
 	
 	///////////////// NO-HEADER DETECTION /////////////////////
 	let elementClusterStack = detectClusterParentStack(SUPPOSED_ROOT,detectedTextElements);
-	
 	/*
 	 * Detect the top-level parent of the previously identified parents. This is used as a sorting base later on.
 	 * We do not care if there are multiple, just the one that includes them all.
 	 */
-	let universalParentStack = detectClusterParent(SUPPOSED_ROOT,elementClusterStack);
-	
+	let universalParentStack = SUPPOSED_ROOT;
+	//let universalParentStack = detectClusterParent(SUPPOSED_ROOT,elementClusterStack);
+
 	/*
 	 * Sort the identified parents based on their distance to the absolute, universal parent. 
 	 */
@@ -126,52 +126,60 @@ function isLikelyTable(_genericClusterPair)
 	inclusionCountMatrix[2] = 0;
 	
 	let tableArray = extractLinesAndColumns(genericCluster);
-	let lineSetArray = tableArray[0];
-	let columnSetArray = tableArray[1];
 	
-	for (genericElement of genericCluster)
-	{
-		let elementInclusionCount = 0;
-		for (lineSetEntry of lineSetArray)
-		{
-			if (lineSetEntry.has(genericElement))
-			{
-				elementInclusionCount++;
-			}
-		}
-		
-		for (columnSetEntry of columnSetArray)
-		{
-			if (columnSetEntry.has(genericElement))
-			{
-				elementInclusionCount++;
-			}
-		}
-		
-		if (elementInclusionCount > 2)
-		{
-			console.log("isLikelyTable identified an element that is assigned to more than 1 line or 1 column!");
-		}
-		inclusionCountMatrix[elementInclusionCount]++;
-	}
-	
-	if (inclusionCountMatrix[0] > 0)
+	if (tableArray == undefined)
 	{
 		return 0.0;
 	}
 	else
 	{
-		if (inclusionCountMatrix[1] == 0 && inclusionCountMatrix[2] > 0) //If all elements are aligned in columns & lines
+		let lineSetArray = tableArray[0];
+		let columnSetArray = tableArray[1];
+		
+		for (genericElement of genericCluster)
 		{
-			return 1.0;
+			let elementInclusionCount = 0;
+			for (lineSetEntry of lineSetArray)
+			{
+				if (lineSetEntry.has(genericElement))
+				{
+					elementInclusionCount++;
+				}
+			}
+			
+			for (columnSetEntry of columnSetArray)
+			{
+				if (columnSetEntry.has(genericElement))
+				{
+					elementInclusionCount++;
+				}
+			}
+			
+			if (elementInclusionCount > 2)
+			{
+				console.log("isLikelyTable identified an element that is assigned to more than 1 line or 1 column!");
+			}
+			inclusionCountMatrix[elementInclusionCount]++;
 		}
-		else if (inclusionCountMatrix[2] == 0 && inclusionCountMatrix[1] > 0) //What happens if they're all in a line? Need some more checks here.
+		
+		if (inclusionCountMatrix[0] > 0)
 		{
-			return -1; //TODO Hardcoded value. 
+			return 0.0;
 		}
-		else if (inclusionCountMatrix[1] > 0 && inclusionCountMatrix[2] > 0)
+		else
 		{
-			return inclusionCountMatrix[2]/(inclusionCountMatrix[2] + inclusionCountMatrix[1]);
+			if (inclusionCountMatrix[1] == 0 && inclusionCountMatrix[2] > 0) //If all elements are aligned in columns & lines
+			{
+				return 1.0;
+			}
+			else if (inclusionCountMatrix[2] == 0 && inclusionCountMatrix[1] > 0) //What happens if they're all in a line? Need some more checks here.
+			{
+				return -1; //TODO Hardcoded value. 
+			}
+			else if (inclusionCountMatrix[1] > 0 && inclusionCountMatrix[2] > 0)
+			{
+				return inclusionCountMatrix[2]/(inclusionCountMatrix[2] + inclusionCountMatrix[1]);
+			}
 		}
 	}
 }
@@ -390,37 +398,40 @@ function filterPossibleTableHeaders(_detectedTextElements)
 	let conceptMatrix = [];
 	for (knownDataModelIndex in DataModel) 
 	{
-		let studiedDataModel = DataModel[knownDataModelIndex];
-		for (detectedElementIndex in _detectedTextElements)
+		if (knownDataModelIndex !== "ForeignKeys")
 		{
-			let detectedElement = _detectedTextElements[detectedElementIndex];
-			
-			for (studiedDataModelIndex in studiedDataModel)
+			let studiedDataModel = DataModel[knownDataModelIndex];
+			for (detectedElementIndex in _detectedTextElements)
 			{
-				let studiedDataModelEntry = studiedDataModel[studiedDataModelIndex];
-				let studiedDataModelEntryLowerCase = studiedDataModelEntry.toLowerCase().trim();
-				let detectedElementTextLowerCase = detectedElement.innerHTML.toLowerCase().trim();
+				let detectedElement = _detectedTextElements[detectedElementIndex];
 				
-				let foundMatch = false;
-				
-				//If the texts match exactly
-				if (studiedDataModelEntryLowerCase === detectedElementTextLowerCase)
+				for (studiedDataModelIndex in studiedDataModel)
 				{
-					foundMatch = true;
-				}
-				else if (detectedElementTextLowerCase.includes(studiedDataModelEntryLowerCase))
-				{
-					foundMatch = true;
-				}
-				
-				if (foundMatch)
-				{
-					let conceptDetectionArray = conceptMatrix[studiedDataModel];
-					if (conceptDetectionArray === undefined)
+					let studiedDataModelEntry = studiedDataModel[studiedDataModelIndex];
+					let studiedDataModelEntryLowerCase = studiedDataModelEntry.toLowerCase().trim();
+					let detectedElementTextLowerCase = detectedElement.innerHTML.toLowerCase().trim();
+					
+					let foundMatch = false;
+					
+					//If the texts match exactly
+					if (studiedDataModelEntryLowerCase === detectedElementTextLowerCase)
 					{
-						conceptDetectionArray = conceptMatrix[studiedDataModel] = [];
+						foundMatch = true;
 					}
-					conceptDetectionArray.push(detectedElement);
+					else if (detectedElementTextLowerCase.includes(studiedDataModelEntryLowerCase))
+					{
+						foundMatch = true;
+					}
+					
+					if (foundMatch)
+					{
+						let conceptDetectionArray = conceptMatrix[studiedDataModel];
+						if (conceptDetectionArray === undefined)
+						{
+							conceptDetectionArray = conceptMatrix[studiedDataModel] = [];
+						}
+						conceptDetectionArray.push(detectedElement);
+					}
 				}
 			}
 		}
@@ -656,7 +667,6 @@ function detectClusterParentStack(domVerticalLimit,_genericCluster)
 			{
 				let clusterElement = _genericCluster[clusterEntryElementIndex];
 				let clusterComparedElement = _genericCluster[clusterEntryComparedIndex];
-		
 				let foundParent = getClosestCommonAncestor(domVerticalLimit,clusterElement,clusterComparedElement);
 				
 				let foundMatchingPair = false;
