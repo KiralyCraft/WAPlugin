@@ -2,12 +2,15 @@
  * This file should be loaded after the core detection algorithms. This ensures that methods defined in the core file (page.js) are also accessible here, while providing a separation of detection concepts.
  */
 
-/*chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
-	 if (receivedMessage.request == "message_popup_page_processDOMDifference_TMP") //TODO Trebuie sa definim cumva alta metoda de procesare a mesajului aici, pentru ca nu corespunde cu structura impusa
-	 {
-		executeDetectionProcedure();
-	 }
-});*/
+chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
+	if (receivedMessage.request == "message_popup_page_detectTables") //TODO Trebuie sa definim cumva alta metoda de procesare a mesajului aici, pentru ca nu corespunde cu structura impusa
+	{
+		 if (receivedMessage.parameters.algorithm == "alternative")
+		 {
+			 executeDetectionProcedure();
+		 }
+	}
+});
 
 /*
  * The main method of this file. Detection algorithm starts here.

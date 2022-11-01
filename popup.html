@@ -42,7 +42,11 @@ value "popup.html".
 		border-radius:  2px;
 		border:  1px solid blue;
 	}
-
+	#tableDetectionAlgoSelection {
+		justify-content: center;
+		display: flex;
+	}
+	
 	</style>
 
 	<script src="popup.js" defer></script>
@@ -50,6 +54,15 @@ value "popup.html".
 <body>
 <div id="plugin">
 	<div id="primaryBlocksOperations">
+		
+		Table detection flavour
+		<div id="tableDetectionAlgoSelection">
+			<input type="radio" name="tableDetectionAlgorithm" value="standard" checked>
+			<label>Standard</label>
+			<input type="radio" name="tableDetectionAlgorithm" value="alternative">
+			<label>Alternative</label>
+		</div>
+	
 		<button id="DetectTablesButton">Detect tables</button><br/>
 		<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/>
 		<button id="undoHighlightInputsButton">Undo highlight Input nodes</button><br/>

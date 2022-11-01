@@ -196,8 +196,21 @@ document.addEventListener("DOMContentLoaded", function(event) {
  * Asta merge la conceptDetect-SELECT_ALL, temporar
  */
 document.querySelector('#DetectTablesButton').addEventListener('click', function() {
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_detectTables'});
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) 
+	{
+		let tableDetectionAlgorithm = document.querySelector( 'input[name="tableDetectionAlgorithm"]:checked').value;
+		let tableDetectionParameters = {};
+		
+		if (tableDetectionAlgorithm === "standard")
+		{
+			tableDetectionParameters.algorithm = "standard";
+		}
+		else if (tableDetectionAlgorithm === "alternative")
+		{
+			tableDetectionParameters.algorithm = "alternative";
+		}
+		
+		chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_detectTables',parameters:tableDetectionParameters});
 	});
 });
 
