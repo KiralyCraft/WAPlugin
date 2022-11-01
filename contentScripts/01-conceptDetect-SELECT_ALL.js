@@ -7,18 +7,24 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 	{
 		 if (receivedMessage.parameters.algorithm == "alternative")
 		 {
-			 executeDetectionProcedure();
+			 let tableDetection = executeDetectionProcedure();
+			 highlightElements(tableDetection);
 		 }
 	}
 });
+
+function highlightElements(_tableDetection)
+{
+	console.log(_tableDetection);
+}
 
 /*
  * The main method of this file. Detection algorithm starts here.
  */
 function executeDetectionProcedure()
 {
-	let SUPPOSED_ROOT = window.frames[0].document.body;
-	//let SUPPOSED_ROOT = document.body;
+	//let SUPPOSED_ROOT = window.frames[0].document.body;
+	let SUPPOSED_ROOT = document.body;
 
 	
 	let detectedTextElements = filterDetectedTextElements(getTextElements(SUPPOSED_ROOT));
@@ -62,54 +68,96 @@ function executeDetectionProcedure()
 	{
 		TABLE_THRESHOLD = 1;
 	}
-
-	for (tableLikliness of tableLiklinessArray)
-	{
-		if (tableLikliness[1] >= TABLE_THRESHOLD)
-		{
-			tableLikliness[0][0].style.outline = '#f00 solid 4px';
-			tableLikliness[0][0].style.outlineOffset = "-4px";
-
-			let linesAndColumns = extractLinesAndColumns(tableLikliness[0][1]);
-
-			for (lineSet of linesAndColumns[0])
-			{
-				let identifiedParent = detectClusterParent(SUPPOSED_ROOT,[...lineSet.values()]);
-
-				identifiedParent.style.outline = '#00ff00 solid 2px';
-				identifiedParent.style.outlineOffset = "-6px";
-			}
-		}
-	}
 	
-	return;
+	return buildAPIRepresentation(tableLiklinessArray,TABLE_THRESHOLD,SUPPOSED_ROOT);
+	
+//  TODO PENDING_DEPRECATION
+// 	for (tableLikliness of tableLiklinessArray)
+// 	{
+// 		if (tableLikliness[1] >= TABLE_THRESHOLD)
+// 		{
+// 			console.log(tableLikliness);
+// 			tableLikliness[0][0].style.outline = '#f00 solid 4px';
+// 			tableLikliness[0][0].style.outlineOffset = "-4px";
+// 
+// 			let linesAndColumns = extractLinesAndColumns(tableLikliness[0][1]);
+// 			for (lineSet of linesAndColumns[0])
+// 			{
+// 				let identifiedParent = detectClusterParent(SUPPOSED_ROOT,[...lineSet.values()]);
+// 
+// 				identifiedParent.style.outline = '#00ff00 solid 2px';
+// 				identifiedParent.style.outlineOffset = "-6px";
+// 			}
+// 		}
+// 	}
 	///////////////////////////////////////////////////////////
-	
 	let headerParent = detectClusterParent(SUPPOSED_ROOT,chosenDataModelHeaderElements);
 	let verticalClusters = clusterElementsByHeadersVertically(detectedTextElements,detectedTextElements);
-	//console.log(verticalClusters);
-
+	
 	let horizontalClusters = clusterElementsHorizontally(verticalClusters);
 	let horizontalParents = detectHorizontalParents(SUPPOSED_ROOT,horizontalClusters);
-	//TODO Sort the identified elements according to their horizontal order
 	
 	let filteredHorizontalParents = filterHorizontalClusters(headerParent,horizontalParents);
 	let horizontalMegacluster = detectClusterParent(SUPPOSED_ROOT,filteredHorizontalParents); 
 	let tableMegacluster = detectClusterParent(SUPPOSED_ROOT,[horizontalMegacluster,headerParent]); 
+}
+
+/*
+ * Given the array of table likelyness, for the elements that fit a certain threshold, it returns an object of the form:
+ * [{
+ * 		tableRootTag: <element>,rows: [{rowRootTag: <element>,cells: [{cellRootTag: <element>,textValue: "string"}]}]
+ * }]
+ */
+function buildAPIRepresentation(_tableLiklinessArray,_TABLE_THRESHOLD,_SUPPOSED_ROOT)
+{
+	let toReturn = [];
 	
-	console.log(tableMegacluster);
-	//TODO pot gasi un dreptunghi care sa includa doar ce am gasit si nimic altceva?
-	//TODO cat de mic trebuie sa fie dreptunghiul astfel incat sa includa doar chestii ce le-am gasit, dar nimic altceva?
-	//TODO spatiul intre doua linii sa fie mai mic.
-	/*
-	 * Un mega-cluster este de fapt un tabel si contine linii pentru
-		care intre doua linii succesive avem: Linia1.getBoundingClientRect().bottom =
-		Linia2.getBoundingClientRect().top + offset, unde offset este un numar intre 0px
-		si (height of a line)/2 pixels.*/
+	for (tableLikliness of _tableLiklinessArray)
+	{
+		if (tableLikliness[1] >= _TABLE_THRESHOLD)
+		{
+			let pendingTableStructure = {};
+			let pendingRowStructure = [];
+			
+			let tableInformation = tableLikliness[0];
+			
+			let tableRootTag = tableInformation[0];
+			let tableComponentInformation = tableInformation[1];
+			
+			let linesAndColumns = extractLinesAndColumns(tableComponentInformation);
+			for (lineSet of linesAndColumns[0])
+			{
+				let identifiedRowParent = detectClusterParent(_SUPPOSED_ROOT,[...lineSet.values()]);
+				
+				let pendingRowElement = {};
+				pendingRowElement.rowRootTag = identifiedRowParent;
+				
+				let pendingCellStructure = [];
+				
+				for (cellElement of lineSet)
+				{
+					let pendingCellElement = {};
+					
+					pendingCellElement.cellRootTag = cellElement;
+					pendingCellElement.textValue = cellElement.innerHTML;
+					
+					pendingCellStructure.push(pendingCellElement);
+				}
+				
+				pendingRowElement.cells = pendingCellStructure;
+				
+				pendingRowStructure.push(pendingRowElement);
+			}
+			
+			/////// BUILD THE TABLE API REPRESENTATION ///////
+			pendingTableStructure.tableRootTag = tableRootTag;
+			pendingTableStructure.rows = pendingRowStructure;
+			toReturn.push(pendingTableStructure);
+			//////////////////////////////////////////////////
+		}
+	}
 	
-	//TODO de vazut mai mnulte tabele in aceeasi pagina, rulam de mai multe ori si excludem alea prin care am trecut deja
-	
-	//TODO de vazut pentru fiecare element, care e top si bottom. pe baza astora, identificam liniile. unele coloane pot fi goale, dar pentru fiecare coloana zicem care sunt coloanele (pe baza top & bottom). apoi facem interclasare si reorientare 
+	return toReturn;
 }
 
 /*
