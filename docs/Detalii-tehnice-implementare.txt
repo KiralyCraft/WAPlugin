@@ -197,12 +197,25 @@ mai multe entitati dar numai o parte din campuri, cum e la Accounts, si acolo po
 click pe 2 entitati - randuri din tabel - si vad ca la fiecare entitate sunt afisate atributele 
 entitatii din Data Model)
 
+Datastructure pt. un Tabel:
+Tabel = {tableRootTag : <rootTabel>, 
+         rows : [ { rowRootTag : <rootRowTabel>, 
+                    cells : [ {cellRootTag: <rootCell>, textValue: ".." }, 
+                              {cellRootTag: <rootCell>, textValue: ".." },
+                               ...
+                            ] 
+                   },
+                   ....     
+                ]
+        };
+
+
 
 
 
 Idei de articole:
-1) Construirea hartii unei aplicatii web de business (harta aproape completa, nu doar 
-blockuri atomice CRUD)
+1) Construirea hartii unei aplicatii web de business (harta aproape completa, fara 
+blockuri atomice CRUD): Automatic Mapping of Business Web Applications
 - continut articol: 
         o descrie cum functioneaza un plugin de browser care construieste semiautomat o harta 
           conceptuala a intregii aplicatii; blocuri atomice pt. operatii CRUD sunt detectate
@@ -261,5 +274,7 @@ atomice inter-aplicatii, reprezentarea acestora fara name clashing)
 specificari de procese in limbaj NLP; pe baza istoricului de procese executate pentru acelasi user
 uman, robotul RPA poate sa sugereze completions pentru prefixe de procese introduse de user
 (asemanator de query completion and suggestion de pe Google sau alt motor de cautare)
-
+- Formalizarea conceptului de building block atomic de navigare intr-o applicatie web CRM:
+de cate astfel de block-uri avem nevoie pt. a descrie toate procesele posibile in acea
+aplicatie (ca si baze in sisteme vectoriale)
 ====================================================================================================

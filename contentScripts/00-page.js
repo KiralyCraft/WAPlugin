@@ -129,6 +129,8 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         undoHighlightInputElements();
     } else if (receivedMessage.request == "message_popup_page_undoHighlightTextInputElemAssociations") {
         undoHighlightTextInputElemAssociations(getDocumentRoot() /*window.frames[0].document*/); 
+    } else if (receivedMessage.request == "message_popup_page_debug") {
+        debug();
     } else if (receivedMessage.action == "action_popup_visible") {
         //Do not handle
 	} else if (receivedMessage.action == "action_popup_visible_inputdetect") {
@@ -136,6 +138,8 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 	} else if (receivedMessage.action == "action_popup_injectors_probe_reply") {
         //Avoid replying to this, because the hotProbeResponder will.
     }
+
+    // functia care calculeaza Diff DOM
 });
 
 
@@ -185,9 +189,125 @@ function processDOMDifference() {
     console.log("Concept detected: ", detectedConceptOperation);
 
     // detectam atribute Foreign Keys
-    detectForeignKeyFields(detectedConceptOperation.concept, textElements, root);
+    let FKFields = detectForeignKeyFields(detectedConceptOperation.concept, textElements, root.body);
+    // The structure of FKFields is:
+    //  [ {ForeignKey: entry.ForeignKey, TextElem : txtElem, AssocInputNode: null}, ... ] 
+
+    let visibleNodes = [];
+    let invisibleNodes = [];
+    let newVisibleNodes = [];
+    let newInvisibleNodes = [];
+    updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes);    
+//    clickTrigger(FKFields[0].AssocInputNode, 1000).then(function() {
+//        console.log('Click triggered on '+FKFields[0].AssocInputNode);
+        //alert('Click triggered on '+FKFields[0].AssocInputNode);
+
+        console.log(visibleNodes.length, invisibleNodes.length, newVisibleNodes.length, newInvisibleNodes.length);
+        clickTrigger(root.querySelector("#parentcustomerid1_i"), 1000).then(function() {
+            console.log('Click triggered on ' + root.querySelector("#parentcustomerid1_i"));
+            //alert('Click triggered on ' + root.querySelector("#parentcustomerid1_i"));
+        });
+
+        pause().then(function() {  
+            newVisibleNodes = [];
+            newInvisibleNodes = [];
+            updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes); 
+            console.log(visibleNodes.length, invisibleNodes.length, newVisibleNodes.length, newInvisibleNodes.length);
+            //console.log("processDOMDifference(): newVisibleNodes:", newVisibleNodes);
+            let commonAncestor = null;
+            if (newVisibleNodes.length>0) {
+                commonAncestor = newVisibleNodes[1];
+                commonAncestor.style.border = "2px solid red";
+                for(let i=1; i<newVisibleNodes.length; i++) {
+                    commonAncestor = getClosestCommonAncestor(root.body, commonAncestor, newVisibleNodes[i]);
+                }
+            }
+            console.log("processDOMDifference(): commonAncestor is:", commonAncestor);
+            if (commonAncestor!=null) {
+                commonAncestor.style.border = "2px solid red";
+            }
+        });
+//    });
 
     return detectedConceptOperation;
+}
+
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+                
+async function pause() {
+    console.log("Sleeping ...");
+    await sleep(20000);
+    console.log("End sleep.");
+}
+
+function debug() {
+    /*let button = root.createElement("button");
+    button.style.position = "absolute";
+    button.style.top = "200px";
+    button.style.left = "200px";
+    button.innerText = "Click me";
+    root.body.appendChild(button);
+    button.addEventListener('click', function(){
+        console.log("BUTTON CLICKED!!!!");
+    });
+
+    clickTrigger(button);*/
+    clickTrigger(getDocumentRoot().body.querySelector("#parentcustomerid1_lookupValue"));
+    clickTrigger(getDocumentRoot().body.querySelector("#parentcustomerid1_i"));
+    //getDocumentRoot().body.querySelector("#parentcustomerid1_i").click();
+    console.log("click2");
+}
+
+
+function updateVisibleDOM(root, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes) {
+    function findNodeInArray(array, node) {
+        for(let i=0; i<array.length; i++) 
+            if (array[i].isEqualNode(node)) return true;
+        return false;
+    }
+
+    if ((visibleNodes==null) || (invisibleNodes==null) || (newVisibleNodes==null) || (newInvisibleNodes==null)) {
+        return;
+    }
+
+    console.log("updateVisibleDOM: root=", root);
+    if ((visibleNodes.length>0) || (invisibleNodes.length>0)) {
+        newVisibleNodes.length = 0;
+        newInvisibleNodes.length = 0;
+
+        root.querySelectorAll("*").forEach(function(node) {
+            let visibility = isElementVisible(node);
+            if (node.getAttribute("id")=="Dialog_parentcustomerid1_IMenu") {
+                console.log("updateVisibleDOM: visibility of #Dialog_parentcustomerid1_IMenu:", visibility);
+            }
+            if (findNodeInArray(visibleNodes, node)) {
+                if (!visibility) {
+                    newInvisibleNodes.push(node);
+                }
+            } else if (findNodeInArray(invisibleNodes, node)) {
+                if (visibility) {
+                    newVisibleNodes.push(node);
+                }
+            } else { // new node in the DOM
+                if (visibility) newVisibleNodes.push(node);
+                else newInvisibleNodes.push(node);
+            }
+        });
+    }
+
+    // rebuild visibleNodes and invisibleNodes
+    visibleNodes.length = 0;
+    invisibleNodes.length = 0;
+    root.querySelectorAll("*").forEach(function(node) {
+        let visibility = isElementVisible(node);
+        if (visibility) visibleNodes.push(node);
+        else invisibleNodes.push(node);
+    });
+
+    //console.log("updateVisibleDOM(): newVisibleNodes=", newVisibleNodes);
 }
 
 function walkDOM(main) {
@@ -278,10 +398,11 @@ function isElementVisible(item) {
     // other element overlapping it.
 
     if (item==null) return false;
-    if ((window.getComputedStyle(item).visibility == "hidden") || 
-        (window.getComputedStyle(item).display == "none") ||
-        (window.getComputedStyle(item).opacity == "0") || 
-        (window.getComputedStyle(item).bottom < 0) || (window.getComputedStyle(item).right < 0)) {
+    let style = window.getComputedStyle(item);
+    let boundingBox = item.getBoundingClientRect();
+    if ((style.visibility=="hidden") || (style.display=="none") || (style.opacity=="0") ||
+        (style.top<0) || (style.bottom<0) || (style.left<0) || (style.right<0) ||
+        (boundingBox.top<0) || (boundingBox.bottom<0) || (boundingBox.left<0) || (boundingBox.right<0)) {
             return false;
     }
     return true;
@@ -456,19 +577,50 @@ function detectForeignKeyFields(concept, textElements, root) {
                 }
             })
             if (txtElem != null) {
-                FKarray.push({ForeignKey: entry.ForeignKey, TextElem : txtElem}); 
+                FKarray.push({ForeignKey: entry.ForeignKey, TextElem : txtElem, AssocInputNode: null}); 
             };
         }
     });
 
     console.log("detectForeignKeyFields(): ", FKarray);
+    console.log("Label positions: ", FKarray[0].TextElem.getBoundingClientRect().top,
+        " ", FKarray[0].TextElem.getBoundingClientRect().left);
 
     let i=0;
     for(i=0; i<FKarray.length; i++) {
-        // search for elements on the South-East quadrants of the textElement containing the ForeignKey
-        root.querySelectorAll("*").forEach(function(node) {
-            if (!isElementVisible()) return;
-        
+        /* Search for associated input element on the South-East quadrant of the textElement containing 
+         * the ForeignKey. The "associated input element" does not actually need to be an <input>-like
+         * element, it is just a node which is visible and stands out to the user, i.e. it satisfies
+         * at least one of the following conditions:
+         *     - the node only has an innerText and no other children
+         *     - the node has a border (this makes the node stand out to the user)
+         *     - the node has a background color that is different than the default one 
+         *       (i.e. the root's background color); this also makes the node stand out to the user
+         * Here we want to accomodate for the situation where this "associated input element" is just
+         * a regular div, but it looks like an input element and when the user clicks on or hovers it,
+         * an actual <input> replaces it so that the user can input text.
+        */
+        let minDistance = 0xffffffff;
+        let assocInputNode = null;
+
+        root.querySelectorAll(":not(.taskmate-canvas)").forEach(function(node) {
+            // the input node associated with a label must be visible and it should either contain
+            // non empty string or it should have a border (to make it visible to the human user),
+            // and it should be in the South-East quadrant of the label; please note that here, the
+            // input node is not necessarily an <input> node, it can be any type of DOM element
+            //if (node.getAttribute("id")!="parentcustomerid1_lookupDiv") return;
+
+            if (!isElementVisible(node)) return;
+            let style = window.getComputedStyle(node);
+            if (((node.childNodes.length!=1) || (node.children.length!=0) || (node.innerText.trim().length <=0)) && 
+                ((style.borderWidth=="") || (style.borderWidth=="0px") || (style.borderStyle=="") || (style.borderStyle=="none")) &&
+                ((style.backgroundColor=="") || (style.backgroundColor=="rgba(0, 0, 0, 0)") || (style.backgroundColor==window.getComputedStyle(root).backgroundColor))) {
+                return;
+                // background-color is not inherited; if an element does not have background-color explicitely
+                // set in inline CSS or external CSS, window.getComputedStyle(elem).backgroundColor always 
+                // returns "rgba(0, 0, 0, 0)".
+            }
+
             let nodePosition = node.getBoundingClientRect();
             let relativePosition = null;
             let textNodePosition = FKarray[i].TextElem.getBoundingClientRect();
@@ -497,7 +649,7 @@ function detectForeignKeyFields(concept, textElements, root) {
                            (nodePosition.left - textNodePosition.left);
                 pos = "!right&below";
             } else if ((textNodePosition.right <= nodePosition.left) &&
-                (nodePosition.bottom <= nodePosition.top)) {
+                (textNodePosition.bottom <= nodePosition.top)) {
                 /* inputNode is on the (right & below) of the textNode;
                  * so we compute the distance between textNode(bottom,right)
                  * and inputNode(top,left) corners.
@@ -505,16 +657,35 @@ function detectForeignKeyFields(concept, textElements, root) {
                 distance = (nodePosition.top - textNodePosition.bottom) +
                            (nodePosition.left - textNodePosition.right);
                 pos = "right&below";
-            } // else { we do not care .. }
+            } else { 
+                // Node is not in the South-East quadrant with respect to textNode, so it not of interest .. 
+                distance = 0xffffffff; // set distance to a large enough value
+            }
 
             
-            if (distance <= maxAcceptableDistance) {
-                    node.style.border = "1px solid black";
+            if ((distance <= maxAcceptableDistance) && (distance < minDistance)) {
+                    console.log("detectForeignKeyFields(): candidate node associated to label '",
+                        FKarray[i].TextElem.innerText, "' distance=", distance,
+                        " maxAcceptableDistance=", maxAcceptableDistance, " is: ");
+                    console.log(node);
+                    console.log("Node top and left positions:", nodePosition.top, nodePosition.left," pos=", pos);
+                    
+                    minDistance = distance;
+                    assocInputNode = node;
+                    //node.style.border = "2px solid black";
             } 
 
         });
+
+        if (assocInputNode != null) {
+            console.log("detectForeignKeyFields(): the node associated to label '",
+                        FKarray[i].TextElem.innerText, " is: ", assocInputNode);
+            assocInputNode.style.border = "2px solid black";
+            FKarray[i].AssocInputNode = assocInputNode;
+        }
     }
         
+    return FKarray;
 }
 
 
