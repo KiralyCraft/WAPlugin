@@ -93,7 +93,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     //         console.log('It works!');
     //     }
     // });
-	
+    
     if (receivedMessage.request == "message_background_page_updatePhantomDOM") {
         //TODO: urmatoarele 2 linii sunt comentate temporar pentru teste
         //processDOMDifference();
@@ -123,8 +123,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
             preLeafNode: node, concept : detectedConceptOperation.concept, 
             operation: detectedConceptOperation.operation});
-    } else if (receivedMessage.request == "message_popup_page_detectTables") 
-    {
+    } else if (receivedMessage.request == "message_popup_page_detectTables") {
         if (receivedMessage.parameters.algorithm == "standard")
         {
             detectTables();
@@ -137,9 +136,9 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         debug();
     } else if (receivedMessage.action == "action_popup_visible") {
         //Do not handle
-	} else if (receivedMessage.action == "action_popup_visible_inputdetect") {
+    } else if (receivedMessage.action == "action_popup_visible_inputdetect") {
         //Do not handle
-	} else if (receivedMessage.action == "action_popup_injectors_probe_reply") {
+    } else if (receivedMessage.action == "action_popup_injectors_probe_reply") {
         //Avoid replying to this, because the hotProbeResponder will.
     }
 
