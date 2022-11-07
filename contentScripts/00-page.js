@@ -314,6 +314,7 @@ function updateVisibleDOM(root, visibleNodes, invisibleNodes, newVisibleNodes, n
 }
 
 function walkDOM(main) {
+    // TODO: bufny
     //var arr = [];
     let taskmateID = 1;
     var loop = function(main) {
@@ -586,8 +587,8 @@ function detectForeignKeyFields(concept, textElements, root) {
     });
 
     console.log("detectForeignKeyFields(): ", FKarray);
-    console.log("Label positions: ", FKarray[0].TextElem.getBoundingClientRect().top,
-        " ", FKarray[0].TextElem.getBoundingClientRect().left);
+    //console.log("Label positions: ", FKarray[0].TextElem.getBoundingClientRect().top,
+    //    " ", FKarray[0].TextElem.getBoundingClientRect().left);
 
     let i=0;
     for(i=0; i<FKarray.length; i++) {
