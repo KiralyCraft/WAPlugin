@@ -123,8 +123,12 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
             preLeafNode: node, concept : detectedConceptOperation.concept, 
             operation: detectedConceptOperation.operation});
-    } else if (receivedMessage.request == "message_popup_page_detectTables") {
-        detectTables();
+    } else if (receivedMessage.request == "message_popup_page_detectTables") 
+    {
+        if (receivedMessage.parameters.algorithm == "standard")
+        {
+            detectTables();
+        }
     } else if (receivedMessage.request == "message_popup_page_undoHighlightInputs") {
         undoHighlightInputElements();
     } else if (receivedMessage.request == "message_popup_page_undoHighlightTextInputElemAssociations") {
