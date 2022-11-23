@@ -131,20 +131,26 @@ chrome.tabs.onActivated.addListener(async function (tabId, changeInfo, tab) {
     }); 
 
 });
+*/
 
 
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
     if (changeInfo.status === 'complete') {
-        console.log("tabs.onUpdated event..");
+        console.log("tabs.onUpdated event.. tabId=", tabId, tab);
         let activeTab = await getTargetTab();
-        console.log("activeTab:", activeTab, activeTab[0].id);
-        console.log("Background.js: sending message to content.js.");
-        chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test2"}, function(response) {
-            console.log("received response from content script:", response);
+        console.log("********activeTab:", activeTab, activeTab[0].id);
+        //console.log("Background.js: sending message to content.js.");
+        //chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test2"}, function(response) {
+        //    console.log("received response from content script:", response);
+        //});
+        console.log("Background.js: injecting content script in tab.");
+        chrome.scripting.executeScript({
+            target: {tabId: tabId, allFrames: false},
+            files: ['contentScripts/00-datamodel-spec.js','contentScripts/00-page.js']
         }); 
     }
 });
-*/
+
 
 
 /*chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {

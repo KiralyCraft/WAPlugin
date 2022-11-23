@@ -40,6 +40,16 @@ var highlightedInputElements = [];
 // The structure of highlightedInputelements is :
 // [{"inputNode" : inputNode, "styleInputNode" : inputNode.style, "ancestor" : ancestor, "styleAncestor" : ancestor.style} ...]
 
+
+window.alert('Plugin injected');
+window.addEventListener('DOMContentLoaded', function(event) {
+    console.log("New document loaded in browser tab. Plugin is injected.");
+});
+document.addEventListener('load', function(event) {
+    console.log("New document loaded in browser tab. Plugin is injected.");
+});
+
+
 if (window.frames[0]) {
     window.frames[0].document.addEventListener('click', function(event) {
         if (event.type == "click") {
@@ -222,6 +232,7 @@ function processDOMDifference() {
                 commonAncestor = newVisibleNodes[1];
                 commonAncestor.style.border = "2px solid red";
                 for(let i=1; i<newVisibleNodes.length; i++) {
+                    newVisibleNodes[i].style.border = "1px solid blue";
                     commonAncestor = getClosestCommonAncestor(root.body, commonAncestor, newVisibleNodes[i]);
                 }
             }
