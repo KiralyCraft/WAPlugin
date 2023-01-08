@@ -14,6 +14,8 @@ const CONTENT_PAGE_GREETS =
 ]
 
 
+var NavigationHistoryWindowID =- 1;
+
 ////////// UI OPEREATIONS /////////
 
 /*
@@ -190,6 +192,32 @@ document.addEventListener("DOMContentLoaded", function(event) {
 		}
 	});
 	//buildInjectors(); //Don't always force the building of injectors, because they may already be present
+
+    chrome.storage.local.get(['NavigationHistoryWindowID']).then(async (localObj) => {
+    	if (localObj != null) {
+    		NavigationHistoryWindowID = localObj.NavigationHistoryWindowID;
+    	}
+	    console.log('NavigationHistoryWindowID=', NavigationHistoryWindowID);    
+
+		if (NavigationHistoryWindowID !=-1) {
+			chrome.windows.get(NavigationHistoryWindowID).then(async (window) => {
+				if (window != null) {
+					await chrome.windows.remove(NavigationHistoryWindowID);
+				}
+			})
+		}
+		
+		chrome.windows.create({'focused': true, 'url': 'navigation-history.html', 'type': 'popup', 
+			'width': 800, 'height' : 600}, function(window) {
+   				console.log('Navigation history popup created. WindowID=', window.id);
+   				console.log('window=', window);
+   				window.alwaysOnTop = true;
+   				NavigationHistoryWindowID = window.id;
+           		chrome.storage.local.set(
+               		{"NavigationHistoryWindowID": NavigationHistoryWindowID},  
+           		);
+   		});
+	});
 });
 
 /*
@@ -214,16 +242,18 @@ document.querySelector('#DetectTablesButton').addEventListener('click', function
 	});
 });
 
+console.log("In POPUP.JS");
+
 document.querySelector('#processDOMDifferenceButton').addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_processDOMDifference'}, 
             function(responseMessage) {
-                console.log("RESPONSE:", responseMessage);
+                console.log("Popup.js RESPONSE:", responseMessage);
                 if (responseMessage.response == "message_page_popup_primaryNavigationBlockDetected") {
                     //const preLeafNode = responseMessage.preLeafNode.split("|");
                     //const preLeafNode = responseMessage.preLeafNode;
                     document.querySelector("#navigationMap").innerHTML = 
-                        "<p>[" + "preLeafNode" + "] -> [Concept: " + responseMessage.concept + ", Operation: " + 
+                  		"<p>[" + "preLeafNode" + "] -> [Concept: " + responseMessage.concept + ", Operation: " + 
                         responseMessage.operation + "]</p>";
                 }
         });
@@ -243,6 +273,14 @@ document.querySelector('#undoHighlightTextInputAssociationsButton').addEventList
                                 function(response) {});
     });
 });
+
+document.querySelector('#showNavigationHistoryButton').addEventListener('click', function() {
+	chrome.runtime.sendMessage({action: "action_popup_visible"}, function(theResponse) 
+	{
+			console.log(theResponse);
+	});
+});
+
 
 document.querySelector('#debugButton').addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {

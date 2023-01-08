@@ -13,8 +13,8 @@ function clickTrigger(target, delay=1000) {
 	return new Promise(function(resolve, reject) {
 		// Dispatch the event
 		//let timeoutID = window.setTimeout(function() {target.dispatchEvent(event)}, delay);
-		//target.dispatchEvent(event);
-		target.click();
+		target.dispatchEvent(event);
+		//target.click();
 		console.log("Debug .. in clickTrigger...");
 		resolve("");
 	});

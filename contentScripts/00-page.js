@@ -27,8 +27,12 @@ $(document).ready(function () {
 });
 */
 
+console.log("Plugin injected");
 console.log("Start of page.js.");
 console.log("DataModel: ", DataModel);
+
+window.setInterval(function() {console.log("Plugin is alive and loaded.")}, 10000);
+
 
 var textElementsWithInputs = [];
 // The structure of textElementsWithInputs is :
@@ -41,7 +45,8 @@ var highlightedInputElements = [];
 // [{"inputNode" : inputNode, "styleInputNode" : inputNode.style, "ancestor" : ancestor, "styleAncestor" : ancestor.style} ...]
 
 
-window.alert('Plugin injected');
+var DOMState = { state: null, currentDOM: {operation: null, concept: null} };
+
 window.addEventListener('DOMContentLoaded', function(event) {
     console.log("New document loaded in browser tab. Plugin is injected.");
 });
@@ -50,7 +55,7 @@ document.addEventListener('load', function(event) {
 });
 
 
-if (window.frames[0]) {
+/*if (window.frames[0]) {
     window.frames[0].document.addEventListener('click', function(event) {
         if (event.type == "click") {
             // save target ID to local storage
@@ -62,6 +67,54 @@ if (window.frames[0]) {
             console.log("ClickEvent detected, target=", event.path);
         }
     });
+}*/
+
+
+monitorClickEventsOnAllDocuments();
+
+function monitorClickEventsOnAllDocuments() {
+    console.log ("There are ", window.frames.length, " frames in the current window.");
+
+    document.addEventListener('click', function(event) {
+        monitorClickEvent(document, 'DocumentRoot', event);
+    }, true); // the last parameter, true, is very important because it allown the event to be
+              // handled first by our function and only then it is handled by some inner handlers 
+              // through event bubbleing
+
+    let i = 0;
+    while (i<window.frames.length) {
+        if (window.frames[i] != null) {
+            window.frames[i].document.addEventListener('click', 
+                monitorClickEvent.bind(null, window.frames[i].frameElement, 
+                                  window.frames[i].frameElement.getAttribute("id")),
+                true);
+        }
+        i++;
+    }
+}
+
+function monitorClickEvent(documentRoot, documentRootID, event) {
+    if (event.type == "click") {
+        console.log("ClickEvent detected, target=", event.target, "(" + event.target.innerText + ")", 
+                    " elementID=", documentRootID, " documentRoot=", documentRoot, " event.path=", 
+                    event.path);
+        if ((documentRoot.tagName=="FRAME") || (documentRoot.tagName=="IFRAME")) {
+            if (documentRoot.contentDocument != null) {
+                documentRoot = documentRoot.contentDocument;
+            } else if (documentRoot.contentWindow.document != null) {
+                documentRoot = documentRoot.contentWindow.document;
+            }
+        }
+        chrome.runtime.sendMessage({request: "message_page_background_clickEvent", 
+                    operation : "Click", target: SerializeDOMPath(documentRoot.body, event.path),
+                    targetText : event.target.innerText});
+        if ((DOMState.currentDOM.operation=="UPDATE") && (event.target.innerText.toUpperCase()=="DELETE")) {
+            console.log("sending message_page_background_operationDetected to Background");
+            chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                    operation : "DELETE", 
+                    concept : DOMState.currentDOM.concept});
+        }
+    }
 }
 
 //chrome.runtime.sendMessage({text: "Start Message: Content.js is up and ready."});
@@ -104,7 +157,53 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     //     }
     // });
     
-    if (receivedMessage.request == "message_background_page_updatePhantomDOM") {
+    if (receivedMessage.request == "message_background_page_mapUIOperation") {
+        (async () => {
+            console.log("Msg. message_background_page_mapUIOperation received from background.");
+            await pause(10000);
+            let detectedConceptOperation = processDOMDifference();
+            if ((detectedConceptOperation.concept!=null) || (detectedConceptOperation.operation!=null)) {
+                console.log("sending message_page_background_operationDetected to Background");
+                chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                        operation : detectedConceptOperation.operation, 
+                        concept : detectedConceptOperation.concept});
+                DOMState.currentDOM.operation = detectedConceptOperation.operation;
+                DOMState.currentDOM.concept = detectedConceptOperation.concept;
+                await pause(5000);
+                undoHighlightTextInputElemAssociations(getDocumentRoot());
+                undoHighlightInputElements();
+            } else {
+                let tables = detectTables();
+                let tableConcepts = detectConceptInTables(tables);
+                if ((tables != null) && (tables.length>0)) {
+                    console.log("sending message_page_background_operationDetected to Background");
+                    chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                            operation : "SELECTALL", 
+                            concept : tableConcepts});
+                    DOMState.currentDOM.operation = "SELECTALL";
+                    DOMState.currentDOM.concept = tableConcepts;
+                    await pause(5000);
+                    undoHighlightTables(tables);
+                    // undo table row highlight
+                    for(let i=0; i<tables.length; i++) {
+                        let rowclusterRoots = [];
+                        for(let j=0; j<tables[i].rows.length; j++) {
+                            rowclusterRoots.push(tables[i].rows[j].rowclusterRoot);                
+                        }
+                        undoHighlightRowClusters(rowclusterRoots);
+                    }
+                } else {
+                    console.log("sending message_page_background_operationDetected to Background");
+                    chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                            operation : "Generic DOM", 
+                            concept : ""});
+                    DOMState.currentDOM.operation = "Generic DOM";
+                    DOMState.currentDOM.concept = "";
+                }
+            }
+        })();
+
+    } else if (receivedMessage.request == "message_background_page_updatePhantomDOM") {
         //TODO: urmatoarele 2 linii sunt comentate temporar pentru teste
         //processDOMDifference();
         //saveDOMDifftoLocalStorage();
@@ -120,7 +219,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         console.log("Running processDOMDifference() ...");
         let detectedConceptOperation = processDOMDifference();
         var node = null;
-        chrome.storage.local.get(["ClickedElementID"], function(item) {
+/*        chrome.storage.local.get(["ClickedElementID"], function(item) {
             console.log("Data saved in chrome.storage.local:",item);
             node = item;
             console.log("node:", node);
@@ -128,8 +227,13 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
             //sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
             //        preLeafNode: node, concept : detectedConceptOperation.concept, 
             //        operation: detectedConceptOperation.operation});
-        });
+        });*/
         console.log("****node:", node);
+        console.log("detectedConceptOperation: ", detectedConceptOperation);
+        console.log("Sending response message to popup: message_page_popup_primaryNavigationBlockDetected:",
+            {response: "message_page_popup_primaryNavigationBlockDetected",
+            preLeafNode: node, concept : detectedConceptOperation.concept, 
+            operation: detectedConceptOperation.operation});
         sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
             preLeafNode: node, concept : detectedConceptOperation.concept, 
             operation: detectedConceptOperation.operation});
@@ -206,54 +310,111 @@ function processDOMDifference() {
     // The structure of FKFields is:
     //  [ {ForeignKey: entry.ForeignKey, TextElem : txtElem, AssocInputNode: null}, ... ] 
 
-    let visibleNodes = [];
-    let invisibleNodes = [];
-    let newVisibleNodes = [];
-    let newInvisibleNodes = [];
-    updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes);    
-//    clickTrigger(FKFields[0].AssocInputNode, 1000).then(function() {
-//        console.log('Click triggered on '+FKFields[0].AssocInputNode);
-        //alert('Click triggered on '+FKFields[0].AssocInputNode);
-
-        console.log(visibleNodes.length, invisibleNodes.length, newVisibleNodes.length, newInvisibleNodes.length);
-        clickTrigger(root.querySelector("#parentcustomerid1_i"), 1000).then(function() {
-            console.log('Click triggered on ' + root.querySelector("#parentcustomerid1_i"));
-            //alert('Click triggered on ' + root.querySelector("#parentcustomerid1_i"));
-        });
-
-        pause().then(function() {  
-            newVisibleNodes = [];
-            newInvisibleNodes = [];
-            updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes); 
-            console.log(visibleNodes.length, invisibleNodes.length, newVisibleNodes.length, newInvisibleNodes.length);
-            //console.log("processDOMDifference(): newVisibleNodes:", newVisibleNodes);
-            let commonAncestor = null;
-            if (newVisibleNodes.length>0) {
-                commonAncestor = newVisibleNodes[1];
-                commonAncestor.style.border = "2px solid red";
-                for(let i=1; i<newVisibleNodes.length; i++) {
-                    newVisibleNodes[i].style.border = "1px solid blue";
-                    commonAncestor = getClosestCommonAncestor(root.body, commonAncestor, newVisibleNodes[i]);
-                }
-            }
-            console.log("processDOMDifference(): commonAncestor is:", commonAncestor);
-            if (commonAncestor!=null) {
-                commonAncestor.style.border = "2px solid red";
-            }
-        });
-//    });
+    // Deocamdata codul de executor e comentat
+    /*if (FKFields.length > 0) {
+        // trigger a seach on a list - just as an example of a simple executor
+        TriggerUISearchListShow(root, FKFields[0].AssocInputNode);
+    }*/
 
     return detectedConceptOperation;
 }
 
 
+async function TriggerUISearchListShow(root, inputNode) {
+    let visibleNodes = [];
+    let invisibleNodes = [];
+    let newVisibleNodes = [];
+    let newInvisibleNodes = [];
+    updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes);    
+    /*  The code below handles 2 click events in a synchronous sequence. It is written using the
+     *  old Promise.then() syntax. We rewrote the code using async/await constructs. */ 
+    /*clickTrigger(FKFields[0].AssocInputNode, 1000)
+    .then(function() {
+        console.log('1st Click triggered on '+FKFields[0].AssocInputNode);
+    })
+    // wait for the click event to be handled
+    .then(pause)        // if pause() had an argument, this should be coded like:
+                        //          .then(x => pause(x))
+                        // or like this:
+                        //          .then(function() {return pause(x);})
+    .then(function() {  
+        newVisibleNodes = [];
+        newInvisibleNodes = [];
+        updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes); 
+        console.log(visibleNodes.length, invisibleNodes.length, newVisibleNodes.length, newInvisibleNodes.length);
+    
+        return clickTrigger(root.querySelector("#parentcustomerid1_i"), 1000);
+    })    
+    .then(function() {
+        console.log('2nd Click triggered on ' + root.querySelector("#parentcustomerid1_i"));
+        // wait for the click event to be handled
+        return pause();
+    })
+    .then(function() {  
+        newVisibleNodes = [];
+        newInvisibleNodes = [];
+        updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes); 
+        console.log(visibleNodes.length, invisibleNodes.length, newVisibleNodes.length, newInvisibleNodes.length);
+        //console.log("processDOMDifference(): newVisibleNodes:", newVisibleNodes);
+        let commonAncestor = null;
+        if (newVisibleNodes.length>0) {
+            commonAncestor = newVisibleNodes[1];
+            commonAncestor.style.border = "2px solid red";
+            for(let i=1; i<newVisibleNodes.length; i++) {
+                newVisibleNodes[i].style.border = "1px solid blue";
+                commonAncestor = getClosestCommonAncestor(root.body, commonAncestor, newVisibleNodes[i]);
+            }
+        }
+        console.log("processDOMDifference(): commonAncestor is:", commonAncestor);
+        if (commonAncestor!=null) {
+            commonAncestor.style.border = "2px solid red";
+        }
+    });*/     // END of commented code - this code is kept for reference purposes only; the code is correct and works
+    
+    /* The same code as above (handling 2 click events in synchronous sequence), but written using async/await syntax.
+     * This code is part of the executor, not part of map discovery.
+     */
+    console.log('1st Click triggered on ' + inputNode);
+    await clickTrigger(inputNode, 1000)
+    // wait for the click event to be handled
+    await pause();
+    newVisibleNodes = [];
+    newInvisibleNodes = [];
+    updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes); 
+    console.log(visibleNodes.length, invisibleNodes.length, newVisibleNodes.length, newInvisibleNodes.length);
+
+    console.log('2nd Click triggered on ' + root.querySelector("#parentcustomerid1_i"));
+    await clickTrigger(root.querySelector("#parentcustomerid1_i"), 1000);
+    // wait for the click event to be handled
+    await pause();
+
+    newVisibleNodes = [];
+    newInvisibleNodes = [];
+    updateVisibleDOM(root.body, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes); 
+    console.log(visibleNodes.length, invisibleNodes.length, newVisibleNodes.length, newInvisibleNodes.length);
+    //console.log("processDOMDifference(): newVisibleNodes:", newVisibleNodes);
+    let commonAncestor = null;
+    if (newVisibleNodes.length>0) {
+        commonAncestor = newVisibleNodes[1];
+        commonAncestor.style.border = "2px solid red";
+        for(let i=1; i<newVisibleNodes.length; i++) {
+            newVisibleNodes[i].style.border = "1px solid blue";
+            commonAncestor = getClosestCommonAncestor(root.body, commonAncestor, newVisibleNodes[i]);
+        }
+    }
+    console.log("processDOMDifference(): commonAncestor is:", commonAncestor);
+    if (commonAncestor!=null) {
+        commonAncestor.style.border = "2px solid red";
+    }
+}
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
                 
-async function pause() {
+async function pause(pauseInterval = 10000 /*ms*/) {
     console.log("Sleeping ...");
-    await sleep(20000);
+    await sleep(pauseInterval); 
     console.log("End sleep.");
 }
 
@@ -294,9 +455,9 @@ function updateVisibleDOM(root, visibleNodes, invisibleNodes, newVisibleNodes, n
 
         root.querySelectorAll("*").forEach(function(node) {
             let visibility = isElementVisible(node);
-            if (node.getAttribute("id")=="Dialog_parentcustomerid1_IMenu") {
+            /*if (node.getAttribute("id")=="Dialog_parentcustomerid1_IMenu") {
                 console.log("updateVisibleDOM: visibility of #Dialog_parentcustomerid1_IMenu:", visibility);
-            }
+            }*/
             if (findNodeInArray(visibleNodes, node)) {
                 if (!visibility) {
                     newInvisibleNodes.push(node);
@@ -704,6 +865,33 @@ function detectForeignKeyFields(concept, textElements, root) {
 }
 
 
+function detectConceptInTables(tables) {
+    let tableConcepts = Array(tables.length).fill("");
+    for (let i=0; i<tables.length; i++) {
+        let firstTableRow = tables[i].rows[0];
+        let firstHeaderField = "";
+        for (let j=0; j<firstTableRow.innerTextNodes.length; j++) {
+            if ((firstTableRow.ancestorNodes[j].cluster == firstTableRow.clusters[firstTableRow.rowclusterIndex]) 
+                && (firstTableRow.innerTextNodes[j].innerText != "")) {
+                firstHeaderField = firstTableRow.innerTextNodes[j].innerText;
+                break;
+            }
+        }
+        if (firstHeaderField == "") continue;
+        
+        for (concept in DataModel) {
+            if (concept=="ForeignKeys") continue;
+            if (firstHeaderField.toLowerCase().includes(DataModel[concept][0].toLowerCase())) {
+                tableConcepts[i] = concept;
+            }
+
+        }
+    }
+    console.log("detectConceptInTables(): tableConcepts=", tableConcepts);
+    return tableConcepts;
+}
+
+
 function highlightElements(nodes, color) {
     nodes.forEach(function(node) {
         if (node) {
@@ -870,13 +1058,13 @@ function SerializeDOMPath(root, path) {
     let str = "";
     for(let i=0; i<path.length; i++) {
         if (path[i].isEqualNode(root)) break;
-        //console.log("node:", path[i]);
+        //console.log("SerializeDOMPath current node:", path[i]);
         str += path[i].tagName;
         if (path[i].getAttribute("id") && path[i].getAttribute("id") != "") 
             str += "#" + path[i].getAttribute("id");
         else if (path[i].getAttribute("class") && path[i].getAttribute("class") != "") 
             str += "." + path[i].getAttribute("class");
-        str += "|";
+        str += "| ";
     };
     console.log(str);  
     return str;  
@@ -931,6 +1119,7 @@ function detectTables() {
     //let defaultFontSize = getDefaultFontSize(root);
 
     let rowClustersList = clusterTextElementsHorizontally(root, detectedTextElements);
+    console.log("Table Rowclusters detected: ", rowClustersList);
     let detectedTables = clusterRowsVertically(root, rowClustersList);
 
     // highlight tables
@@ -942,6 +1131,19 @@ function detectTables() {
         })
     }
     console.log("Detected tables:", detectedTables); 
+    return detectedTables;
+}
+
+
+function undoHighlightTables(tables) {
+    // undo highlight tables
+    if (tables != null) {
+        tables.forEach(function(table) {
+            if (table.tableRootTag!=null) {
+                table.tableRootTag.style.border = "";
+            }
+        })
+    }
 }
 
 
@@ -980,7 +1182,7 @@ function clusterTextElementsHorizontally(root, textElements) {
     let rowclusterRootTags = [];
     let feasibleClusterSet = null;
     while (textElements.length>1) {
-        //UNDOhighlightRowClusters(rowclusterRootTags);   // for debugging purposes
+        //undoHighlightRowClusters(rowclusterRootTags);   // for debugging purposes
         /*if (feasibleClusterSet)
             feasibleClusterSet.innerTextNodes.forEach(function(item) { // for debugging purposes - undo highlight
                 item.style.border = "";
@@ -1477,21 +1679,25 @@ function clusterRowsVertically(root, rowClustersList) {
 
         if ((rect1.left < rect2.left - HORIZONTAL_TABLE_THRESHOLD) || 
             (rect2.left < rect1.left - HORIZONTAL_TABLE_THRESHOLD)) {
-                console.log("checkConsecutiveRowsInTable() - false: ", rowclusterRootTag1, rowclusterRootTag2);
+                console.log("checkConsecutiveRowsInTable() - false (case 1): ", 
+                    rowclusterRootTag1, rowclusterRootTag2);
                 return false;
         }
         if ((rect1.right < rect2.right - HORIZONTAL_TABLE_THRESHOLD) || 
             (rect2.right < rect1.right - HORIZONTAL_TABLE_THRESHOLD)) {
-                console.log("checkConsecutiveRowsInTable() - false: ", rowclusterRootTag1, rowclusterRootTag2);
+                console.log("checkConsecutiveRowsInTable() - false (case 2): ", 
+                    rowclusterRootTag1, rowclusterRootTag2);
                 return false;
         }
         if ((rect1.width > rect2.width + HORIZONTAL_TABLE_THRESHOLD) || 
             (rect2.width > rect1.width + HORIZONTAL_TABLE_THRESHOLD)) {
-                console.log("checkConsecutiveRowsInTable() - false: ", rowclusterRootTag1, rowclusterRootTag2);
+                console.log("checkConsecutiveRowsInTable() - false (case 3): ", 
+                    rowclusterRootTag1, rowclusterRootTag2);
                 return false;
         }
         if (rect2.top - rect1.bottom > VERTICAL_TABLE_THRESHOLD) {
-                console.log("checkConsecutiveRowsInTable() - false: ", rowclusterRootTag1, rowclusterRootTag2);
+                console.log("checkConsecutiveRowsInTable() - false (case 4): ", 
+                    rowclusterRootTag1, rowclusterRootTag2);
                 return false;
         }
 
@@ -1583,7 +1789,17 @@ function clusterRowsVertically(root, rowClustersList) {
                     m++;    
                 }
                 let tableRootTag = computeTableRootTag(root, foundTable);
-                detectedTables.push({rows : foundTable, tableRootTag : tableRootTag});
+                // one final filter: if the Top position of tableRootTag is far away from the
+                // Top position of the first row in the table (i.e. foundTable[0].rowclusterRoot),
+                // then we drop it and we don't consider it a table
+                let rectTable = tableRootTag.getBoundingClientRect();
+                let rectFirstRow = foundTable[0].rowclusterRoot.getBoundingClientRect();
+                let verticalSeparation = rectFirstRow.top - rectTable.top;
+                if (verticalSeparation<0) verticalSeparation = - verticalSeparation;
+                
+                if (verticalSeparation < 2*rectFirstRow.height) { // This is a table! 
+                    detectedTables.push({rows : foundTable, tableRootTag : tableRootTag});
+                }
             }
         }
 
@@ -1617,7 +1833,7 @@ function highlightRowClusters(rowclusterRootTags) {
     }
 }
 
-function UNDOhighlightRowClusters(rowclusterRootTags) {
+function undoHighlightRowClusters(rowclusterRootTags) {
     for(let i=0; i<rowclusterRootTags.length; i++) {
         if (rowclusterRootTags[i] != null) {
             rowclusterRootTags[i].style.background = "";

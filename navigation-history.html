@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		#nav {
+			border: 1px solid lightblue;
+			margin-left: auto;
+			margin-right: auto;
+			padding: 10%;
+			width: 60%;
+		}
+		#nav>div, #nav>canvas {
+			margin-left:  auto;
+			margin-right:  auto;
+		}
+
+		canvas {
+			/*border:  1px solid green;*/
+			display:  block;
+		}
+		.navliteral {
+			color:  red;
+		}
+		.basicnav {
+			border-radius: 10px;
+			border: 1px solid blue;
+			max-width: 200px;
+			overflow:  hidden;
+			background:  rgb(250, 222, 234);
+			padding:  6px;
+		}
+		.clicknav {
+			border-radius: 5px;
+			border: 1px solid black;
+			max-width: 200px;
+			overflow:  hidden;
+			background: rgb(234, 252, 222);
+			padding:  6px;
+		}
+		.selectallnav {
+			border-radius: 10px;
+			border: 1px solid lightblue;
+			max-width: 200px;
+			overflow:  hidden;
+			background:  rgb(250, 222, 234);
+			padding:  6px;
+		}
+
+	</style>
+	<script src="navigation.js"></script>
+</head>
+<body>
+	<button id="showBtn">Show navigation</button>
+	<div id="nav"></div>
+</body>
+</html>

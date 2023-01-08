@@ -14,17 +14,43 @@ console.log("Background.js starts ...");
   console.error(e);
 }*/
 
-chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
+
+var NavigationHistory = [];
+
+chrome.runtime.onMessage.addListener(async function(receivedMessage, sender, sendResponse) {
     //console.log("Message received:", receivedMessage);
     message = receivedMessage;
     console.log("Background.js: Message received from the user's page: ", receivedMessage);
     message = receivedMessage; // just for the popup page
 
-    var loggingObject = new Object();
+    if (receivedMessage.request == "message_page_background_clickEvent") {
+        if (receivedMessage.operation=="Click") {
+            NavigationHistory.push({operation : "Click", target : receivedMessage.target, 
+                                    targetText: receivedMessage.targetText});
+            console.log("Sending response to message_page_background_clickEvent msg..");
+            // sendResponse it's not OK here since the content script does not awaits for the response
+            // in the same code that sends the original message :
+            // sendResponse({response: "message_background_page_clickEventRegistered",
+            //            result : "Click event registered."});
+            let activeTab = await getTargetTab();
+            chrome.tabs.sendMessage(activeTab[0].id, { request: "message_background_page_mapUIOperation"});
+        }
+    } else if (receivedMessage.request == "message_page_background_operationDetected") {
+        NavigationHistory.push({operation : receivedMessage.operation, 
+                                concept : receivedMessage.concept});
+    } else if (receivedMessage.request =="message_navigationhistory_background_getNavigationHistory") {
+        sendResponse(NavigationHistory);
+    }
+
+    for(let i=0; i<NavigationHistory.length; i++) {
+        console.log("Navigation step ->", NavigationHistory[i]);
+    }
+
+    /*var loggingObject = new Object();
     loggingObject.message = receivedMessage;
     loggingObject.reportTime = (new Date()).getTime();
     loggingObject.key = key;
-    loggingObject.pluginVersion = version;
+    loggingObject.pluginVersion = version;*/
 
     // do wathever business logic with the loggingObject
     // either client side
@@ -79,9 +105,9 @@ chrome.webRequest.onCompleted.addListener((event) => {
     this.xhrTimer = settimeout(xhrTimeout, 500);*/
 
     // clear previous pending alarms and set a new alarm
-    console.log("clearing all alarms...");
+//    console.log("clearing all alarms...");
     chrome.alarms.clear("xhrAlarm");
-    console.log("create new alarm...");
+//    console.log("create new alarm...");
     chrome.alarms.create (
         "xhrAlarm",                           // name of alarm
         {delayInMinutes:0.5}                  // alarmInfo 
@@ -95,7 +121,7 @@ chrome.webRequest.onCompleted.addListener((event) => {
          * be followed by a .then() call
          */
         function(alarms) {
-            console.log("All alarms are:", alarms);
+//            console.log("All alarms are:", alarms);
         }
     );
 
@@ -115,7 +141,7 @@ chrome.alarms.onAlarm.addListener(
 
 
 async function getTargetTab() {
-    let activeTab = await chrome.tabs.query({ url: "http://172.30.3.49:5555/CRMEndava/*" });
+    let activeTab = await chrome.tabs.query({ url: "http://172.30.3.49:5555/CRMEndava3/*" });
     return activeTab;
 }
 
@@ -138,16 +164,19 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
     if (changeInfo.status === 'complete') {
         console.log("tabs.onUpdated event.. tabId=", tabId, tab);
         let activeTab = await getTargetTab();
-        console.log("********activeTab:", activeTab, activeTab[0].id);
-        //console.log("Background.js: sending message to content.js.");
-        //chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test2"}, function(response) {
-        //    console.log("received response from content script:", response);
-        //});
-        console.log("Background.js: injecting content script in tab.");
-        chrome.scripting.executeScript({
-            target: {tabId: tabId, allFrames: false},
-            files: ['contentScripts/00-datamodel-spec.js','contentScripts/00-page.js']
-        }); 
+        console.log("activeTab:", activeTab, activeTab[0].id);
+        if (changeInfo.url) {
+            console.log(`Tab: ${tabId} URL changed to ${changeInfo.url}`);
+            //console.log("Background.js: sending message to content.js.");
+            //chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test2"}, function(response) {
+            //    console.log("received response from content script:", response);
+            //});
+            console.log("Background.js: injecting content script in tab.");
+            chrome.scripting.executeScript({
+                target: {tabId: tabId, allFrames: false},
+                files: ['contentScripts/00-datamodel-spec.js','contentScripts/00-page.js']
+            }); 
+        }
     }
 });
 
