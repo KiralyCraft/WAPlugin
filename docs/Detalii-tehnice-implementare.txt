@@ -196,6 +196,15 @@ element DOM care are handler de onClick()
 mai multe entitati dar numai o parte din campuri, cum e la Accounts, si acolo pot sa dau 
 click pe 2 entitati - randuri din tabel - si vad ca la fiecare entitate sunt afisate atributele 
 entitatii din Data Model)
+- Cum sa obtin o semnatura a unui element clickabil? Raspuns posibil: path-ul lui in DOM pana la 
+Body.
+- Cum sa obtin o semnatura a unei pagini web? Raspuns posibil: lista tuturor elementelor clickabile din
+acea pagina html.
+- Daca la afisarea unei entitati (operatia SELECT) sunt multe fielduri si se afiseaza doar o parte din aceste fielduri, restul urmand sa fie afisate daca userul face click pe niste butoane de toggle show, cum ma prind ca acele butoane nu schimba conceptul/entitatea din DOM ci doar afiseaza campuri in plus ?
+Raspuns: Dau click si vad daca restul DOM-ului nu se schimba, ci doar se adauga continut in plus.
+- Cum detectez o operatie SELECT care nu foloseste <input>-uri pentru afisarea valorilor fieldurilor ?
+Raspuns: Trebuie sa detectez in quadrantul SUD-EST al etichetei, apropiat de eticheta, un tag care contine un text si tagul fie are border, fie background-ul lui e diferit de cel al parintelui (Ce se intampla daca parintele tagului adauga culoarea de background ?)
+
 
 Datastructure pt. un Tabel:
 Tabel = {tableRootTag : <rootTabel>, 

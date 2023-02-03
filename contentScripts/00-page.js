@@ -106,8 +106,8 @@ function monitorClickEvent(documentRoot, documentRootID, event) {
             }
         }
         chrome.runtime.sendMessage({request: "message_page_background_clickEvent", 
-                    operation : "Click", target: SerializeDOMPath(documentRoot.body, event.path),
-                    targetText : event.target.innerText});
+                operation : "Click", target: SerializeDOMPath(documentRoot.body, getPathInDOM(documentRoot.body, event.target)),
+                targetText : event.target.innerText});
         if ((DOMState.currentDOM.operation=="UPDATE") && (event.target.innerText.toUpperCase()=="DELETE")) {
             console.log("sending message_page_background_operationDetected to Background");
             chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
@@ -1053,6 +1053,20 @@ function getClosestCommonAncestor(root, node1, node2) {
     return null;
 }
 
+function getPathInDOM(root, node) {
+    let path = [];
+    path.push(node);
+    if (node == root) return path;
+    let parent = node;
+    while (parent = parent.parentNode) {
+        path.push(parent);
+        if (parent.isEqualNode(root)) {
+            path.push(root);
+            break;
+        }
+    }
+    return path;
+}
 
 function SerializeDOMPath(root, path) {
     let str = "";
