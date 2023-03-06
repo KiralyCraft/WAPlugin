@@ -46,6 +46,7 @@ function createSelectAllNavElement(navigationStep) {
 
 	span = document.createElement("span");
 	span.appendChild(document.createTextNode("Concept: "));
+	console.log("DEBUG navigationStep:", navigationStep);
 	div.appendChild(span);
 	for(let i=0; i<navigationStep.concept.length; i++) {
 		span = document.createElement("span");

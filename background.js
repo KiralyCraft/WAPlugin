@@ -45,17 +45,8 @@ chrome.runtime.onMessage.addListener(async function(receivedMessage, sender, sen
     for(let i=0; i<NavigationHistory.length; i++) {
         console.log("Navigation step ->", NavigationHistory[i]);
     }
+    console.log("--- NavigationHistory object:", NavigationHistory);
 
-    /*var loggingObject = new Object();
-    loggingObject.message = receivedMessage;
-    loggingObject.reportTime = (new Date()).getTime();
-    loggingObject.key = key;
-    loggingObject.pluginVersion = version;*/
-
-    // do wathever business logic with the loggingObject
-    // either client side
-    // or server side
-    // $.post("https://www.scs.ubbcluj.ro/plugin/logging.php", loggingObject);
 });
 
 // clean the chrome storage

@@ -22,6 +22,9 @@
       "contentScripts/01-conceptDetect-SELECT_ALL.js",
       "contentScripts/01-inputDetector.js",
       "contentScripts/01-eventTrigger.js",
+      "contentScripts/01-table-detector.js",
+      "contentScripts/01-crudoperation-detector.js",
+      "contentScripts/01-utils.js",
       "contentScripts/99-hotProbeResponder.js"      
   ],
   "background": {

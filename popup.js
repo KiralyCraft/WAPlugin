@@ -207,11 +207,10 @@ document.addEventListener("DOMContentLoaded", function(event) {
 			})
 		}
 		
-		chrome.windows.create({'focused': true, 'url': 'navigation-history.html', 'type': 'popup', 
-			'width': 800, 'height' : 600}, function(window) {
+		chrome.windows.create({'focused': false, 'url': 'navigation-history.html', 'type': 'popup', 
+			'width': 600, 'height' : 600, left: 100, top: 300}, function(window) {
    				console.log('Navigation history popup created. WindowID=', window.id);
-   				console.log('window=', window);
-   				window.alwaysOnTop = true;
+   				window.alwaysOnTop = false;
    				NavigationHistoryWindowID = window.id;
            		chrome.storage.local.set(
                		{"NavigationHistoryWindowID": NavigationHistoryWindowID},  
@@ -289,3 +288,26 @@ document.querySelector('#debugButton').addEventListener('click', function() {
     });
 });
 
+
+chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
+    /* We use the following format for messages background <-> page :
+     * sendMessage({ request : "message_[fisier sursa]_[fisier destinatie]_[actiune/metoda]", parameters: ... } )
+     * sendMessage({ response : "message_[fisier sursa]_[fisier destinatie]_[actiune/metoda]", parameters: ... } )
+     */
+
+     console.log("********** DEBUG: message received:", receivedMessage);
+    
+    if (receivedMessage.request == "message_page_popup_UIOperationStarted") {
+    	document.querySelector("#status-message").innerHTML="Processing...";
+    	document.querySelector(".progress-allgreen").style.display = "none";
+    	document.querySelector(".progress").style.display = "block";
+    } else if (receivedMessage.request == "message_page_popup_UIOperationCompleted") {
+    	document.querySelector("#status-message").innerHTML="Waiting UI operation..";
+    	document.querySelector(".progress-allgreen").style.display = "block";
+    	//document.querySelector(".progress").style.display = "none";
+    } else if (receivedMessage.request =="message_page_popup_operationDetected") {
+    	document.querySelector("#navigationMap").innerHTML = 
+                  		"<p>[" + "preLeafNode" + "] -> [Concept: " + receivedMessage.concept + ", Operation: " + 
+                        receivedMessage.operation + "]</p>";
+    }
+});

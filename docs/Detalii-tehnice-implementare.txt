@@ -287,3 +287,29 @@ uman, robotul RPA poate sa sugereze completions pentru prefixe de procese introd
 de cate astfel de block-uri avem nevoie pt. a descrie toate procesele posibile in acea
 aplicatie (ca si baze in sisteme vectoriale)
 ====================================================================================================
+
+
+
+
+
+=====================================================================================================
+TODO-uri plugin:
+- [***4est] sa detectam intr-o pagina html toate elementele clickabile (astea ar fi <a>, <button>, <input type"button|submit">, <select> si orice alt element cu un eventlistener de 'click' pe el). Stiu ca a facut Alex ceva de genul, dar eu vreau sa fie evidentiate toate aceste elemente printr-un border rosu (css border: 1px solid red) direct in documentul html.
+- [***4est] navigare automata folosind elemente clickabile
+- [***Alex] testare plugin pe alta aplicatie web in afara de CRM 2016
+- [***Alex] detectia Conceptului dintr-un tabel prin click pe primele 2 linii din tabel (linia 2 si 3) si identificarea celor 2 entitati 
+- [***4est+bufny] gasirea a inca 2 aplicatii CRM candidate (pe langa CRM 2016, CRM 2019 si Jira)
+- [***4est] detectie Concept:Operatie intr-o pagina DOM in care nu am <input>-uri: 1) caut etichete/labeluri din Data Model in pagina; daca nu gasesc, abandonez si nu mai fac nimic cu pagina respectiva; 2) daca gasesc etichete/labeluri, caut <input>-uri asociate in quadrantul de Sud-Est al fiecarui label; daca gasesc astfel de <input>-uri asociate, detectez operatia clasic ca si pana acum; 3) daca nu detectez <input>-uri asociate labelurilor, incerc sa gasesc un TextNode cel mai apropiat de fiecare label/atribut in quadrantul de Sud-Est al acestuia; 4) daca gasesc astfel de TextNode asociat unui label/atribut, simulez click pe el in speranta ca apare un <input> si asociez acest <input> labelului respectiv; 5) daca nu apare <input>, trag concluzia ca operatia este SELECT
+- [**** ****] semnatura unica pagina web DOM = setul de elemente clickabile ?
+- [***bufny] editare obiect JSON NavigationHistory, inclusiv pe partea de UI; variabila NavigationHistory este in background.js si ea se afiseaza in navigation-history.html plus codul navigation.js
+- detectie operatie Delete (3 cazuri)
+- detectie Concept tabel (prin click pe 2 linii din tabel si verificat entitatea la care duce acele linii din tabel)
+- studiu trigger events in browser (Mouse Click, Mouse Over, eventual si altele) direct din Javascript
+- studiu trigger events in browser (Mouse Click, Mouse Over, eventual si altele) din Selenium
+[ pentru event handling, se poate face si programare asynchrona astfel incat sa executati ceva cod dupa ce s-a handle-uit eventul de click]
+- un serviciu extern (PHP?) la care sa trimita pluginul prin Ajax imagini cu iconite pe care sa le recunoasca serviciul
+- capturare imagini (DOM2Canvas)
+
+
+
+

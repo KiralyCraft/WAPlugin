@@ -16,7 +16,7 @@ value "popup.html".
 	}
 	#plugin {
 		/* avoid an excessively wide status text */
-		white-space: pre;
+		white-space: pre-line;
 		/*text-overflow: ellipsis;*/
 		overflow: hidden;
 		max-width: 500px;
@@ -31,63 +31,137 @@ value "popup.html".
 		min-width:300px;
 	}
 	#primaryBlocksOperations {
-		border-bottom: 1px solid blue;
+		color: #787672;
+		border:  1px solid #787672;
+		background: #ede9df;
 	}
-	#navigationMap {
+	#navigationMapPanel {
+		border: 1px solid blue;
+		border-radius:  4px;
+		color: #3355ff;
+	}
+	#statusPanel {
 		border: 1px solid blue;
 		border-radius:  4px;
 		color: #3355ff;
 	}
 	button {
 		border-radius:  2px;
-		border:  1px solid blue;
+		border:  1px solid #787672;;
+		color: #787672;
 	}
 	#tableDetectionAlgoSelection {
 		justify-content: center;
 		display: flex;
 	}
 	
+	/**************** Progress bar animation *****************/
+	@keyframes loadprogressbar {
+		0% {
+			width: 0;
+		}
+		25% {
+			width: 24%;
+		}
+		56% {
+			width: 50%;
+		}
+		75% {
+			width: 70%;
+		}
+		94% {
+			width: 94%;
+		}
+		100% {
+			width: 100%;
+		}
+	}
+	.progress-bar {
+		border-radius: 5px;
+		overflow: hidden;
+		width: 100%;
+		height: 20px;
+		padding: 0px;
+		white-space: nowrap;
+		/*border: 1px solid green;*/
+	}
+	span.bar, span.progress, span.progress-allgreen {
+		display: block;
+		border-radius: 5px;
+		height: 100%;
+	}
+	.bar {
+		background: rgba(0,0,0,0.075);
+		/*border: 1px solid black;*/
+	}
+	.progress {
+		animation: loadprogressbar 15s ease infinite /*forwards*/;
+	    background: #d11935; /*#04AA6D;*/
+		color: #fff;
+		padding: 0px;
+		width: 0px;
+		display: none;
+		/*border: 1px solid magenta;*/
+	}
+	.progress-allgreen {
+		background: #04AA6D;
+		color: #fff;
+		padding: 0px;
+		width: 100%;
+		position: relative;
+		top: -20px;
+		/*transform: translate(0px, -20px);*/
+	}
+
 	</style>
 
 	<script src="popup.js" defer></script>
 </head>
 <body>
 <div id="plugin">
-	<div id="primaryBlocksOperations">
-		
-		Table detection flavour
-		<div id="tableDetectionAlgoSelection">
-			<input type="radio" name="tableDetectionAlgorithm" value="standard" checked>
-			<label>Standard</label>
-			<input type="radio" name="tableDetectionAlgorithm" value="alternative">
-			<label>Alternative</label>
-		</div>
-	
-		<button id="DetectTablesButton">Detect tables</button><br/>
-		<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/>
-		<button id="undoHighlightInputsButton">Undo highlight Input nodes</button><br/>
-		<button id="undoHighlightTextInputAssociationsButton">Undo highlight Text-Input link</button><br/>
-		<button id="showNavigationHistoryButton">Show navigation history</button><br/>
-		<button id="debugButton">Debug</button>
-	</div>
-	<div id="navigationMap"></div>
-	<div id="inputList">
-	<table style="width:100%">
-		<caption>Detected inputs</caption>
-		<tr>
-			<th>Type</th>
-			<th>Position</th>
-			<th>Anchor</th>
-		</tr>
-		<tbody id="inputListTable">
-			<!--<tr>
-				<td>Button</td>
-				<td><button style="width:100%">Show</button></td>
-				<td>Y</td>
-			</tr>-->
+	<fieldset id="primaryBlocksOperations">
+    		<legend>Debug</legend>		
+				<span>Table detection flavour</span>
+				<div id="tableDetectionAlgoSelection">
+					<input type="radio" name="tableDetectionAlgorithm" value="standard" checked>
+					<label>Standard</label>
+					<input type="radio" name="tableDetectionAlgorithm" value="alternative">
+					<label>Alternative</label>
+				</div>
 			
-		</tbody>
-	</table>
+				<button id="DetectTablesButton">Detect tables</button><br/>
+				<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/>
+				<button id="undoHighlightInputsButton">Undo highlight Input nodes</button><br/>
+				<button id="undoHighlightTextInputAssociationsButton">Undo highlight Text-Input link</button><br/>
+				<button id="showNavigationHistoryButton">Show navigation history</button><br/>
+				<button id="debugButton">Debug</button>
+	</fieldset>
+	<fieldset id="statusPanel">
+    		<legend>Status</legend>	
+    		<span id="status-message">Waiting UI operation..</span><br/>
+			<div class="progress-bar">
+  				<span class="bar">
+    				<span class="progress"></span>
+    				<span class="progress-allgreen"></span>
+  				</span>
+			</div>
+	</fieldset>
+	<fieldset id=navigationMapPanel>
+    		<legend>Navigation Map</legend>		
+			<div id="navigationMap"></div>
+	</fieldset>
+	<div id="inputList" style="display:none;">
+		<table style="width:100%">
+			<caption>Detected inputs</caption>
+			<tr>
+				<th>Type</th>
+				<th>Position</th>
+				<th>Anchor</th>
+			</tr>
+			<tbody id="inputListTable">
+			
+			</tbody>
+		</table>
 	</div>
 </div>
 </body>
