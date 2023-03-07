@@ -31,7 +31,7 @@ console.log("Plugin injected");
 console.log("Start of page.js.");
 console.log("DataModel: ", DataModel);
 
-window.setInterval(function() {console.log("Plugin is alive and loaded.")}, 10000);
+//window.setInterval(function() {console.log("Plugin is alive and loaded.")}, 10000);
 
 
 var textElementsWithInputs = [];
@@ -68,6 +68,11 @@ document.addEventListener('load', function(event) {
         }
     });
 }*/
+
+
+ // highlight all visible clickable elements
+let clickableElements = getAllClickableElements();
+console.log('clickableElements: ', clickableElements);
 
 
 monitorClickEventsOnAllDocuments();
@@ -220,6 +225,10 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
             }
             // announce popup.js that the UI operation was completed
             chrome.runtime.sendMessage({request: "message_page_popup_UIOperationCompleted"});
+
+            // highlight all visible clickable elements
+            let clickableElements = getAllClickableElements();
+            console.log('clickableElements: ', clickableElements);
         })();
 
     } else if (receivedMessage.request == "message_background_page_updatePhantomDOM") {

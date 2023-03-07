@@ -122,6 +122,30 @@ function getDocumentRoot() {
     return root;
 }
 
+function getFramesRoots() {
+    let roots = [];
+    // return the root of the document plus the root of all included frames/iframes
+    console.log ("There are ", window.frames.length, " frames in the current window.");
+
+    let root = document;
+    roots.push(document);
+    let i = 0;
+    while (i<window.frames.length) {
+        if (window.frames[i]) {
+            let style = window.getComputedStyle(window.frames[i].frameElement);
+            //console.log("getDocumentRoot(): frame=", window.frames[i].frameElement);
+            if ((style.visibility != "hidden") && (style.display != "none")) {
+                root = window.frames[i].document;
+                //console.log("Root element is the " + i + "-th frame.");
+                //console.log(window.frames[i].frameElement);
+                roots.push(root);
+            }
+        }
+        i++;
+    }
+    return roots;
+}
+
 function getDefaultFontSize(root){
     root = root || document.body;
     let testDiv = document.createElement('div');
@@ -133,3 +157,46 @@ function getDefaultFontSize(root){
     return fs;
 }
 
+function getClickableDescendents(root) {
+    let clickableElements = [];
+    root.querySelectorAll('*').forEach(function(element) {
+        let visibility = isElementVisible(element);
+        if ((visibility==true) && (element.tagName === "BUTTON" || element.tagName === "A" || 
+            (element.onclick != null) || window.getComputedStyle(element).cursor == "pointer")) {
+            clickableElements.push(element);
+            element.style.border = '2px solid red';
+        }
+    });
+    return clickableElements;
+}
+
+function getAllClickableElements() {
+    let root = document;    
+    let clickableElements = getClickableDescendents(root);
+
+    let i = 0;
+    while (i<window.frames.length) {
+        if (window.frames[i]) {
+            let style = window.getComputedStyle(window.frames[i].frameElement);
+            //console.log("getDocumentRoot(): frame=", window.frames[i].frameElement);
+            if ((style.visibility != "hidden") && (style.display != "none")) {
+                root = window.frames[i].document;
+                clickableElements = clickableElements.concat(getClickableDescendents(root));
+            }
+        }
+        i++;
+    }
+    return clickableElements;
+}
+
+//var textElementsWithInputs = [];
+// The structure of textElementsWithInputs is :
+// [{"textNode" : textNode, "inputNode" : associatedInputNode, "inputNodeTag" : associatedInputNode.tagName,
+//   "relativePosition" : "..." } ... ]
+// The "relativePosition" attribute is the position of the inputNode relative to the textNode and it can be:
+// null | right&!below | !right&below | right&below
+
+
+function getClosestCommonAncestorForArray(root, nodes) {
+
+}
