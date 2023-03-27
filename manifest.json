@@ -6,7 +6,7 @@
   "icons": {
     "256": "icon_256.png"
   },
-  "author": "Darius Bufnea",
+  "author": "Adrian Sterca, Alex Kiraly, Darius Bufnea",
   "homepage_url": "https://www.scs.ubbcluj.ro/plugin",
 
   "action": {
@@ -14,6 +14,22 @@
     "default_popup": "popup.html",
     "default_title": "Taskmate Research Plugin"
   },
+
+  "content_scripts": [
+     {
+      "world": "MAIN",
+      "matches": ["<all_urls>"],
+      "js": ["contentScripts/bootstrap.js"],
+      "run_at": "document_start"
+     }
+  ],
+
+  "web_accessible_resources": [
+      {
+        "resources": ["contentScripts/bootcode.js"],
+        "matches": ["<all_urls>"]
+      }
+  ],
 
   "lazyContentScripts": [
       "contentScripts/00-datamodel-spec.js",
@@ -44,6 +60,7 @@
     "ws://*/*", 
     "wss://*/*",
     "http://*/",
-    "https://*/"
+    "https://*/", 
+    "file:///*"
   ]
 }

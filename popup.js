@@ -199,7 +199,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     	}
 	    console.log('NavigationHistoryWindowID=', NavigationHistoryWindowID);    
 
-		if (NavigationHistoryWindowID !=-1) {
+		if ((NavigationHistoryWindowID !=-1) && (NavigationHistoryWindowID != null)) {
 			chrome.windows.get(NavigationHistoryWindowID).then(async (window) => {
 				if (window != null) {
 					await chrome.windows.remove(NavigationHistoryWindowID);

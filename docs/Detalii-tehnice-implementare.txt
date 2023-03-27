@@ -198,8 +198,7 @@ click pe 2 entitati - randuri din tabel - si vad ca la fiecare entitate sunt afi
 entitatii din Data Model)
 - Cum sa obtin o semnatura a unui element clickabil? Raspuns posibil: path-ul lui in DOM pana la 
 Body.
-- Cum sa obtin o semnatura a unei pagini web? Raspuns posibil: lista tuturor elementelor clickabile din
-acea pagina html.
+- Cum sa obtin o semnatura a unei pagini web? Raspuns posibil: lista tuturor elementelor clickabile din acea pagina html.
 - Daca la afisarea unei entitati (operatia SELECT) sunt multe fielduri si se afiseaza doar o parte din aceste fielduri, restul urmand sa fie afisate daca userul face click pe niste butoane de toggle show, cum ma prind ca acele butoane nu schimba conceptul/entitatea din DOM ci doar afiseaza campuri in plus ?
 Raspuns: Dau click si vad daca restul DOM-ului nu se schimba, ci doar se adauga continut in plus.
 - Cum detectez o operatie SELECT care nu foloseste <input>-uri pentru afisarea valorilor fieldurilor ?

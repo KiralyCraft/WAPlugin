@@ -162,11 +162,31 @@ function getClickableDescendents(root) {
     root.querySelectorAll('*').forEach(function(element) {
         let visibility = isElementVisible(element);
         if ((visibility==true) && (element.tagName === "BUTTON" || element.tagName === "A" || 
-            (element.onclick != null) || window.getComputedStyle(element).cursor == "pointer")) {
+            element.onclick != null /*|| window.getComputedStyle(element).cursor == "pointer" */)) {
+            // normally, we should consider that an element with a pointer cursor over it is a clickable
+            // element, but some applications just set the cursor: pointer without being a clickable element
+
+            // extra filters for Ms Dynamics 2016
+            if ((element.getAttribute('onclick')=="return false;") || 
+                (element.getAttribute('onclick')=="return true;")) return;
+            if ((element.tagName === "A") && (element.getAttribute('href')!=null) && 
+                (element.getAttribute('href').startsWith('http')) &&
+                (! element.getAttribute('href').startsWith('http://172.30.3.49:5555/'))) return;
+            if ((element.tagName === "A") && (element.getAttribute('href')!=null) && 
+                (element.getAttribute('href').startsWith('javascript:')) &&
+                (element.getAttribute('href').length<30)) return; // ignore tags like <a href='javascript:void()'></a>
+            if ((element.tagName === "A") && (element.getAttribute('href')!=null) && 
+                (element.getAttribute('href').startsWith('#'))) return;
+
             clickableElements.push(element);
             element.style.border = '2px solid red';
         }
+        if ((visibility==true) && (element.hasAttribute("taskMateEventListener")==true)) {
+            clickableElements.push(element);
+            element.style.border = '2px solid red';    
+        }
     });
+    
     return clickableElements;
 }
 
@@ -188,6 +208,7 @@ function getAllClickableElements() {
     }
     return clickableElements;
 }
+
 
 //var textElementsWithInputs = [];
 // The structure of textElementsWithInputs is :
