@@ -200,7 +200,6 @@ function move(activeInfo) {
 }*/
 
 
-
 class WebSocket {
   // https://websockets.spec.whatwg.org/#the-websocket-interface
   _websocket;

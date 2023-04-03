@@ -311,3 +311,9 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
                         receivedMessage.operation + "]</p>";
     }
 });
+
+console.log("Importing Background Coordinator API in popup.js")
+import BCoordinator_API from './background_coordinator/00-coordinatorAPI.js'
+
+new BCoordinator_API("sdafaasd")
+new BCoordinator_API("sdafaasd2")
