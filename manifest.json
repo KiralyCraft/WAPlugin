@@ -41,6 +41,7 @@
       "contentScripts/01-eventTrigger.js",
       "contentScripts/01-table-detector.js",
       "contentScripts/01-crudoperation-detector.js",
+      "contentScripts/01-executor.js",
       "contentScripts/99-hotProbeResponder.js"      
   ],
   "background": {

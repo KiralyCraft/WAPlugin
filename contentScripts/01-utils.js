@@ -88,6 +88,12 @@ function SerializeDOMPath(root, path) {
     return str;  
 }
 
+function UNSerializeDOMPath(path) {
+    // the root is detected automatically, by checking all possible roots (document or frameElement 
+    // of all existing frames)
+
+
+}
 
 function getDocumentRoot() {
     // return document if this document has no frames/iframes, or if it has frames/iframes
@@ -186,7 +192,7 @@ function getClickableDescendents(root) {
             element.style.border = '2px solid red';    
         }
     });
-    
+
     return clickableElements;
 }
 
