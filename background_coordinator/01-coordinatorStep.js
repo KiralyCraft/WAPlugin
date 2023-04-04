@@ -1,4 +1,4 @@
-import BCoordinator_ExceptionCategory from './00-coordinatorExceptionCodes'
+import BCoordinator_ExceptionCategory from './00-coordinatorExceptionCodes.js'
 
 /*
  * This class defines a step in the navigation procedure. Any step should be able to receive parameters and return some as a result of it's execution.
@@ -13,20 +13,19 @@ class BCoordinator_Step
 	 *	The actionIdentifier must be a function that returns an object. If it is a function, it is evaluated
 	 *  at the time of execution with the currently received parameters from the previous step. 
 	 */
-	constructor(actionIdentifier,stepExecutionFunction,successCallback,failCallback = undefined)
+	constructor(actionIdentifier,stepExecutionFunction)
 	{
 		this.actionIdentifier = actionIdentifier
 		this.stepExecutionFunction = stepExecutionFunction
-		this.successCallback = successCallback
-		this.failCallback = failCallback
 	}
 
-	executeStep(previousStepArguments)
+	async executeStep(previousStepArguments,successCallback,failCallback)
 	{
 		let theIdentifiedObject = actionIdentifier()
 
 		if (theIdentifiedObject === undefined)
 		{
+			//TODO also throw an error here
 			failCallback(this,BCoordinator_ExceptionCategory.ERR_STEP_IDENTIFICATION_FAILED)
 		}
 		else
@@ -46,3 +45,5 @@ class BCoordinator_Step
 	}
 	
 }
+
+export default BCoordinator_Step
