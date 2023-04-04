@@ -1,4 +1,14 @@
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+                
+async function pause(pauseInterval = 10000 /*ms*/) {
+    console.log("Sleeping ...");
+    await sleep(pauseInterval); 
+    console.log("End sleep.");
+}
+
 function computeScrollIndependentBoundingBox(node) {
 	let boundingBox = {};
 	let rect = node.getBoundingClientRect(); 
@@ -92,7 +102,29 @@ function UNSerializeDOMPath(path) {
     // the root is detected automatically, by checking all possible roots (document or frameElement 
     // of all existing frames)
 
+    let elems = path.split("|");
+    let reversePath = "";
+    for(let i=elems.length-1; i>=0; i--) {
+        console.log(elems[i]);
+        if (elems[i].trim() != "") {
+            reversePath += elems[i].trim() + " > ";
+        }
+    };
+    reversePath = reversePath.substring(0, reversePath.length-3);
 
+    let roots = getFramesRoots();
+    let detectedElements = [];
+    for(let i=0; i<roots.length; i++) {
+        if (roots[i].querySelector(reversePath) != null) {
+            detectedElements.push(roots[i].querySelector(reversePath));
+        }
+    }
+
+    if (detectedElements.length > 1) {
+        console.log("UNSerializeDOMPath(): ", path, " can be serialized to: ", detectedElements);
+    }
+
+    return detectedElements[0];
 }
 
 function getDocumentRoot() {

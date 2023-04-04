@@ -418,15 +418,6 @@ async function TriggerUISearchListShow(root, inputNode) {
     }
 }
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-                
-async function pause(pauseInterval = 10000 /*ms*/) {
-    console.log("Sleeping ...");
-    await sleep(pauseInterval); 
-    console.log("End sleep.");
-}
 
 function debug() {
     /*let button = root.createElement("button");

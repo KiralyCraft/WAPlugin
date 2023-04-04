@@ -13,6 +13,8 @@ value "popup.html".
 		/*font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;*/
 		font-family: 'Jura', sans-serif;
 		text-align: justify;
+		min-width:400px;
+
 	}
 	#plugin {
 		/* avoid an excessively wide status text */
@@ -25,10 +27,6 @@ value "popup.html".
 	{
 		border: 1px solid black;
 		text-align: center;
-	}
-	body 
-	{
-		min-width:300px;
 	}
 	#primaryBlocksOperations {
 		color: #787672;
@@ -54,7 +52,9 @@ value "popup.html".
 		justify-content: center;
 		display: flex;
 	}
-	
+ 
+
+
 	/**************** Progress bar animation *****************/
 	@keyframes loadprogressbar {
 		0% {
@@ -113,6 +113,36 @@ value "popup.html".
 		/*transform: translate(0px, -20px);*/
 	}
 
+	.tabs {
+		/*display: flex;
+		flex-direction: row;
+		justify-content: space-between;*/
+		width: 100%;
+		position: relative;
+	}
+	#tabsHeader {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		width: 100%;
+	}
+	#tabsHeader > span {
+		border: 1px solid black;
+	}
+	.tab {
+        display: block;
+        /*float: left;
+        width: auto;*/
+    }    
+    #guidedBrowsing > .innerDiv,
+    #automaticBrowsing > .innerDiv,
+    #automaticExecution > .innerDiv {
+        display: none;       
+    }
+	#debug > .innerDiv {
+		display: block;
+	}
+
 	</style>
 
 	<script src="popup.js" defer></script>
@@ -120,21 +150,48 @@ value "popup.html".
 <body>
 <div id="plugin">
 	<fieldset id="primaryBlocksOperations">
-    		<legend>Debug</legend>		
-				<span>Table detection flavour</span>
-				<div id="tableDetectionAlgoSelection">
-					<input type="radio" name="tableDetectionAlgorithm" value="standard" checked>
-					<label>Standard</label>
-					<input type="radio" name="tableDetectionAlgorithm" value="alternative">
-					<label>Alternative</label>
+    	<legend>General</legend>
+    	<div class="tabs">
+    		<section id="tabsHeader">
+    			<span>Debug</span>
+    			<span>Guided browsing</span>
+    			<span>Automatic browsing</span>
+    			<span>Automatic execution</span>
+    		</section>
+    		<section class="tab" id="debug">
+    			<div class="innerDiv">
+					<span>Table detection flavour</span>
+					<div id="tableDetectionAlgoSelection">
+						<input type="radio" name="tableDetectionAlgorithm" value="standard" checked>
+						<label>Standard</label>
+						<input type="radio" name="tableDetectionAlgorithm" value="alternative">
+						<label>Alternative</label>
+					</div>
+				
+					<button id="DetectTablesButton">Detect tables</button><br/>
+					<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/>
+					<button id="undoHighlightInputsButton">Undo highlight Input nodes</button><br/>
+					<button id="undoHighlightTextInputAssociationsButton">Undo highlight Text-Input link</button><br/>
+					<button id="showNavigationHistoryButton">Show navigation history</button><br/>
+					<button id="debugButton">Debug</button>
 				</div>
-			
-				<button id="DetectTablesButton">Detect tables</button><br/>
-				<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/>
-				<button id="undoHighlightInputsButton">Undo highlight Input nodes</button><br/>
-				<button id="undoHighlightTextInputAssociationsButton">Undo highlight Text-Input link</button><br/>
-				<button id="showNavigationHistoryButton">Show navigation history</button><br/>
-				<button id="debugButton">Debug</button>
+			</section>
+			<section class="tab" id="guidedBrowsing">
+				<div class="innerDiv">
+					aaaaaa
+				</div>
+			</section>
+			<section class="tab" id="automaticBrowsing">
+				<div class="innerDiv">
+					bbbbbbb
+				</div>
+			</section>
+			<section class="tab" id="automaticExecution">
+				<div class="innerDiv">
+					ccccccc
+				</div>
+			</section>
+		</div>
 	</fieldset>
 	<fieldset id="statusPanel">
     		<legend>Status</legend>	

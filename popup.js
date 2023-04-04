@@ -288,6 +288,11 @@ document.querySelector('#debugButton').addEventListener('click', function() {
     });
 });
 
+document.querySelector('#automaticExecution').addEventListener('click', function() {
+	console.log("Automatic execution started...");
+    ExecutePrimaryBlock(InsertAccount_PrimaryBlock);
+});
+
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
     /* We use the following format for messages background <-> page :
