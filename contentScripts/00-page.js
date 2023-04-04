@@ -31,6 +31,7 @@ console.log("Plugin injected");
 console.log("Start of page.js.");
 console.log("DataModel: ", DataModel);
 
+
 //window.setInterval(function() {console.log("Plugin is alive and loaded.")}, 10000);
 
 

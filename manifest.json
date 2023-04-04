@@ -17,7 +17,7 @@
 
   "content_scripts": [
      {
-      "world": "MAIN",
+      /*"world": "MAIN",*/ /* This makes chrome.runtime not available in bootstrap.js for newer versions of Chrome */
       "matches": ["<all_urls>"],
       "js": ["contentScripts/bootstrap.js"],
       "run_at": "document_start"

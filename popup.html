@@ -114,35 +114,33 @@ value "popup.html".
 	}
 
 	.tabs {
-		/*display: flex;
-		flex-direction: row;
-		justify-content: space-between;*/
 		width: 100%;
 		position: relative;
+		white-space: normal;
 	}
 	#tabsHeader {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		width: 100%;
+		margin-bottom: 5px;
 	}
 	#tabsHeader > span {
 		border: 1px solid black;
 	}
 	.tab {
         display: block;
-        /*float: left;
-        width: auto;*/
+        padding-left: 10px;
+        border-left: 1px solid black;
+		border-right: 1px solid black;
     }    
-    #guidedBrowsing > .innerDiv,
-    #automaticBrowsing > .innerDiv,
-    #automaticExecution > .innerDiv {
+    #guidedBrowsing, #automaticBrowsing, #automaticExecution {
         display: none;       
     }
-	#debug > .innerDiv {
+	#debug {
 		display: block;
+		border-top: 1px solid black;
 	}
-
 	</style>
 
 	<script src="popup.js" defer></script>
@@ -159,7 +157,6 @@ value "popup.html".
     			<span>Automatic execution</span>
     		</section>
     		<section class="tab" id="debug">
-    			<div class="innerDiv">
 					<span>Table detection flavour</span>
 					<div id="tableDetectionAlgoSelection">
 						<input type="radio" name="tableDetectionAlgorithm" value="standard" checked>
@@ -167,29 +164,23 @@ value "popup.html".
 						<input type="radio" name="tableDetectionAlgorithm" value="alternative">
 						<label>Alternative</label>
 					</div>
-				
-					<button id="DetectTablesButton">Detect tables</button><br/>
-					<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/>
-					<button id="undoHighlightInputsButton">Undo highlight Input nodes</button><br/>
-					<button id="undoHighlightTextInputAssociationsButton">Undo highlight Text-Input link</button><br/>
-					<button id="showNavigationHistoryButton">Show navigation history</button><br/>
+					<p></p>
+
+					<button id="DetectTablesButton">Detect tables</button><br/><br/>
+					<button id="processDOMDifferenceButton">Detect primary navigation block</button><br/><br/>
+					<button id="undoHighlightInputsButton">Undo highlight Input nodes</button><br/><br/>
+					<button id="undoHighlightTextInputAssociationsButton">Undo highlight Text-Input link</button><br/><br/>
+					<button id="showNavigationHistoryButton">Show navigation history</button><br/><br/>
 					<button id="debugButton">Debug</button>
-				</div>
 			</section>
 			<section class="tab" id="guidedBrowsing">
-				<div class="innerDiv">
 					aaaaaa
-				</div>
 			</section>
 			<section class="tab" id="automaticBrowsing">
-				<div class="innerDiv">
 					bbbbbbb
-				</div>
 			</section>
 			<section class="tab" id="automaticExecution">
-				<div class="innerDiv">
 					ccccccc
-				</div>
 			</section>
 		</div>
 	</fieldset>
