@@ -16,6 +16,11 @@ value "popup.html".
 		min-width:400px;
 
 	}
+	textarea {
+		font-family: 'Jura', sans-serif;
+		font-size: 1em;
+	}
+
 	#plugin {
 		/* avoid an excessively wide status text */
 		white-space: pre-line;
@@ -123,23 +128,36 @@ value "popup.html".
 		flex-direction: row;
 		justify-content: space-between;
 		width: 100%;
-		margin-bottom: 5px;
+		margin-bottom: 0px;
 	}
 	#tabsHeader > span {
-		border: 1px solid black;
+		border-top: 1px solid black;
+		border-left: 1px solid black;
+		border-right: 1px solid black;
+		margin-left: 0px;
+		margin-right: 0px;
+		padding-left: 1px;
+		padding-right: 1px;
+		padding-top: 2px;
+		padding-bottom: 2px;
+		margin-bottom: 0px;
+	}
+	.activetab {
+		background:  linear-gradient(0deg, rgb(37, 115, 186), rgba(37, 115, 186, 0.3));
+		color: ghostwhite;
 	}
 	.tab {
         display: block;
         padding-left: 10px;
-        border-left: 1px solid black;
-		border-right: 1px solid black;
+        padding-bottom: 10px;
+        border: 1px solid black;
+        height: 240px;
     }    
     #guidedBrowsing, #automaticBrowsing, #automaticExecution {
         display: none;       
     }
 	#debug {
 		display: block;
-		border-top: 1px solid black;
 	}
 	</style>
 
@@ -151,10 +169,10 @@ value "popup.html".
     	<legend>General</legend>
     	<div class="tabs">
     		<section id="tabsHeader">
-    			<span>Debug</span>
-    			<span>Guided browsing</span>
-    			<span>Automatic browsing</span>
-    			<span>Automatic execution</span>
+    			<span targetTab="debug" class="activetab">Debug</span>
+    			<span targetTab="guidedBrowsing">Guided browsing</span>
+    			<span targetTab="automaticBrowsing">Automatic browsing</span>
+    			<span targetTab="automaticExecution">Automatic execution</span>
     		</section>
     		<section class="tab" id="debug">
 					<span>Table detection flavour</span>
@@ -174,13 +192,28 @@ value "popup.html".
 					<button id="debugButton">Debug</button>
 			</section>
 			<section class="tab" id="guidedBrowsing">
-					aaaaaa
+					<p></p>
+					<p></p>
+					<button id="startPrimaryBlockButton">Start recording primary block</button><br/><br/>
+					<button id="endPrimaryBlockButton" style="display: none">End recording primary block</button><br/><br/>
+					<input type="checkbox">Finalization step</input><br/><br/>
+					<br/><br/>
+					<p></p>
+					<p></p>
+					<hr/>
+					Recorded primary block: 
 			</section>
 			<section class="tab" id="automaticBrowsing">
-					bbbbbbb
+					<p></p>
+					<p></p>
+					<button id="startAutomaticBrowsingButton">Start automatic mapping of a website</button><br/><br/>
 			</section>
 			<section class="tab" id="automaticExecution">
-					ccccccc
+					<p></p>
+					<p></p>
+					Specify automatic process (JSON serialization): <br/>
+					<textarea id="processDescription" rows="10" cols="55" wrap="off" style="white-space: pre;"></textarea> <br/><br/>
+					<button id="executeProcessButton">Execute process</button><br/><br/>
 			</section>
 		</div>
 	</fieldset>

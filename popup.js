@@ -241,7 +241,27 @@ document.querySelector('#DetectTablesButton').addEventListener('click', function
 	});
 });
 
-console.log("In POPUP.JS");
+console.log("In popup.js");
+
+/* Code for the tab-based navigation */
+document.querySelectorAll(".tabs > #tabsHeader > span").forEach(function(tabheader) {
+	console.log("adding click event listener to ", tabheader);
+	tabheader.addEventListener('click', function(event) {
+		document.querySelectorAll(".tabs > #tabsHeader > span").forEach(function(tabheader) {
+			tabheader.classList.remove("activetab");
+		})
+		tabheader.classList.add("activetab");
+		let targetTab = tabheader.getAttribute("targetTab");
+		document.querySelector("#debug").style.display = "none";
+		document.querySelector("#guidedBrowsing").style.display = "none";
+		document.querySelector("#automaticBrowsing").style.display = "none";
+		document.querySelector("#automaticExecution").style.display = "none";
+
+		document.querySelector("#"+targetTab).style.display = "block";
+
+	})
+})
+
 
 document.querySelector('#processDOMDifferenceButton').addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
