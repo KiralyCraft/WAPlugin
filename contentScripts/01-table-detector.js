@@ -810,7 +810,7 @@ function detectConceptInTables(tables) {
         if (firstHeaderField == "") continue;
         
         for (concept in DataModel) {
-            if (concept=="ForeignKeys") continue;
+            if ((concept=="ForeignKeys") || (concept=="PrimaryKeys")) continue;
             if (firstHeaderField.toLowerCase().includes(DataModel[concept][0].toLowerCase())) {
                 tableConcepts[i] = concept;
             }

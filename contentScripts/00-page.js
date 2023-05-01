@@ -1,15 +1,4 @@
-
-
-// send a message to the background page containing whatever message (even an object)
-
-/*function sendMessage(message) {
-    console.log(window.location.href);
-    console.log(message);
-
-    chrome.runtime.sendMessage(message);
-}
-
-
+/*
 var originalXHR = XMLHttpRequest;
 XMLHttpRequest = function()
 {
@@ -21,10 +10,6 @@ XMLHttpRequest = function()
     return ret;
 };
 
-// do whatever business logic here
-$(document).ready(function () {
-    sendMessage(document);
-});
 */
 
 console.log("Plugin injected");
@@ -32,7 +17,10 @@ console.log("Start of page.js.");
 console.log("DataModel: ", DataModel);
 
 
-//window.setInterval(function() {console.log("Plugin is alive and loaded.")}, 10000);
+var ContentScriptPluginState = {
+    state : "Debug" /* "Debug", "Guided browsing", "Automatic browsing", "Automatic execution" */
+};
+
 
 
 var textElementsWithInputs = [];
@@ -125,7 +113,6 @@ function monitorClickEvent(documentRoot, documentRootID, event) {
     }
 }
 
-//chrome.runtime.sendMessage({text: "Start Message: Content.js is up and ready."});
 
 
 chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
@@ -138,34 +125,12 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
      * because otherwise the page.js is not loaded in the context of this tab
      */
     console.log("Message received by content script:", receivedMessage);
-    
-    //chrome.runtime.sendMessage({response: "OK1"});
-    
-    // var origOpen = XMLHttpRequest.prototype.open;
-    // XMLHttpRequest.prototype.open = function() {
-    //     console.log('Ajax request started!');
-    //     this.addEventListener('load', function() {
-    //         console.log('Ajax request completed!');
-    //         console.log('Ajax request ready state: ' + this.readyState);
-    //         console.log('Ajax request response from the server: ' + this.responseText);
-    //     });
-    //     origOpen.apply(this, arguments);
-    // };
 
-    // $(document).ajaxSuccess(
-    //     function(event, xhr, settings){
-    //         console.log('Ajex call: ' + xhr.responseText);
-    //     }
-    // );
+    if (receivedMessage.request == "message_popup_page_StateChanged") {
+        console.log("Content script's state is now: ", receivedMessage.state);
+        ContentScriptPluginState.state = receivedMessage.state;
 
-    // $.ajaxSetup({
-    //     beforeSend: function() {
-    //         //do stuff before request fires
-    //         console.log('It works!');
-    //     }
-    // });
-    
-    if (receivedMessage.request == "message_background_page_mapUIOperation") {
+    } else if (receivedMessage.request == "message_background_page_mapUIOperation") {
         (async () => {
             console.log("Msg. message_background_page_mapUIOperation received from background.");
             await pause(10000);
@@ -285,7 +250,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         //Avoid replying to this, because the hotProbeResponder will.
     }
 
-    // functia care calculeaza Diff DOM
+
 });
 
 

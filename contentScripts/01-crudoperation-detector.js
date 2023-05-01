@@ -124,7 +124,7 @@ function detectConcept(text) {
     let detectedConcept = "";
 
     for (concept in DataModel) {
-        if (concept=="ForeignKeys") continue; 
+        if ((concept=="ForeignKeys") || (concept=="PrimaryKeys")) continue; 
         console.log(concept, DataModel[concept]);
         let occurences = 0;
         for (property of DataModel[concept]) {
@@ -156,7 +156,7 @@ function detectConceptAndOperation(textElementsWithInputs) {
     let detectedConceptOperation = {"concept" : null, "operation" : null};
     
     for (concept in DataModel) {
-        if (concept=="ForeignKeys") continue; 
+        if ((concept=="ForeignKeys") || (concept=="PrimaryKeys")) continue; 
 
         console.log(concept, DataModel[concept]);
         let attributeOccurences = 0;
@@ -206,7 +206,7 @@ function detectConceptAndOperation(textElementsWithInputs) {
 function detectForeignKeyFields(concept, textElements, root) {
     let FKarray = [];
     DataModel["ForeignKeys"].forEach(function(entry) {
-        if (entry.ForeignTable==concept) {
+        if (entry.ForeignConcept==concept) {
             let txtElem = null;
             textElements.forEach(function(textNode) {
                 if (textNode.innerText.toLowerCase().includes("company"))

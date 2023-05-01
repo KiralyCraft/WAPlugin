@@ -1,3 +1,7 @@
+
+/**************** Code for injecting the lazy scripts into current Document *************************/
+
+
 const GREET_BACKGROUND_PAGE = false;
 const GREET_CONTENT_PAGE = true;
 
@@ -177,7 +181,7 @@ function buildPluginUI()
 }
 
 /*
- * Called when the document 
+ * Called when the document is loaded
  */
 document.addEventListener("DOMContentLoaded", function(event) { 
 	probeInjectors(function(successStatus)
@@ -242,6 +246,38 @@ document.querySelector('#DetectTablesButton').addEventListener('click', function
 });
 
 console.log("In popup.js");
+
+
+
+/******************** Code for communication with other parts of the plugin ******************/
+
+chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
+    /* We use the following format for messages background <-> page :
+     * sendMessage({ request : "message_[fisier sursa]_[fisier destinatie]_[actiune/metoda]", parameters: ... } )
+     * sendMessage({ response : "message_[fisier sursa]_[fisier destinatie]_[actiune/metoda]", parameters: ... } )
+     */
+
+     console.log("********** DEBUG: message received:", receivedMessage);
+    
+    if (receivedMessage.request == "message_page_popup_UIOperationStarted") {
+    	document.querySelector("#status-message").innerHTML="Processing...";
+    	document.querySelector(".progress-allgreen").style.display = "none";
+    	document.querySelector(".progress").style.display = "block";
+    } else if (receivedMessage.request == "message_page_popup_UIOperationCompleted") {
+    	document.querySelector("#status-message").innerHTML="Waiting UI operation..";
+    	document.querySelector(".progress-allgreen").style.display = "block";
+    	//document.querySelector(".progress").style.display = "none";
+    } else if (receivedMessage.request =="message_page_popup_operationDetected") {
+    	document.querySelector("#navigationMap").innerHTML = 
+                  		"<p>[" + "preLeafNode" + "] -> [Concept: " + receivedMessage.concept + ", Operation: " + 
+                        receivedMessage.operation + "]</p>";
+    }
+});
+
+
+
+
+/****************************** Various event listeners for popup's UI *****************************/
 
 /* Code for the tab-based navigation */
 document.querySelectorAll(".tabs > #tabsHeader > span").forEach(function(tabheader) {
@@ -308,31 +344,48 @@ document.querySelector('#debugButton').addEventListener('click', function() {
     });
 });
 
-document.querySelector('#automaticExecution').addEventListener('click', function() {
+document.querySelector('#startPrimaryBlockButton').addEventListener('click', function() {
+	console.log("Start recording primary block...");
+	// send message to background
+	chrome.runtime.sendMessage({request: 'message_popup_background_StateChanged', state: "Guided browsing"});
+	// send message to page
+	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_StateChanged', 
+        						state: "Guided browsing"}, function(response) {});
+    });
+    document.querySelector('#startPrimaryBlockButton').style.display = "none";
+    document.querySelector('#endPrimaryBlockButton').style.display = "block";
+});
+
+document.querySelector('#endPrimaryBlockButton').addEventListener('click', function() {
+	console.log("End recording primary block...");
+    document.querySelector('#endPrimaryBlockButton').style.display = "none";
+    document.querySelector('#startPrimaryBlockButton').style.display = "block";
+});
+
+document.querySelector('#startAutomaticBrowsingButton').addEventListener('click', function() {
+	console.log("Start automatic mapping of a website...");
+	// send message to background
+	chrome.runtime.sendMessage({request: 'message_popup_background_StateChanged', state: "Automatic browsing"});
+	// send message to page
+	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_StateChanged', 
+        						state: "Automatic browsing"}, function(response) {});
+    });
+    
+});
+
+document.querySelector('#executeProcessButton').addEventListener('click', function() {
 	console.log("Automatic execution started...");
+	// send message to background
+	chrome.runtime.sendMessage({request: 'message_popup_background_StateChanged', state: "Automatic execution"});
+	// send message to page
+	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_StateChanged', 
+        						state: "Automatic execution"}, function(response) {});
+    });
+
     ExecutePrimaryBlock(InsertAccount_PrimaryBlock);
 });
 
 
-chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendResponse) {
-    /* We use the following format for messages background <-> page :
-     * sendMessage({ request : "message_[fisier sursa]_[fisier destinatie]_[actiune/metoda]", parameters: ... } )
-     * sendMessage({ response : "message_[fisier sursa]_[fisier destinatie]_[actiune/metoda]", parameters: ... } )
-     */
-
-     console.log("********** DEBUG: message received:", receivedMessage);
-    
-    if (receivedMessage.request == "message_page_popup_UIOperationStarted") {
-    	document.querySelector("#status-message").innerHTML="Processing...";
-    	document.querySelector(".progress-allgreen").style.display = "none";
-    	document.querySelector(".progress").style.display = "block";
-    } else if (receivedMessage.request == "message_page_popup_UIOperationCompleted") {
-    	document.querySelector("#status-message").innerHTML="Waiting UI operation..";
-    	document.querySelector(".progress-allgreen").style.display = "block";
-    	//document.querySelector(".progress").style.display = "none";
-    } else if (receivedMessage.request =="message_page_popup_operationDetected") {
-    	document.querySelector("#navigationMap").innerHTML = 
-                  		"<p>[" + "preLeafNode" + "] -> [Concept: " + receivedMessage.concept + ", Operation: " + 
-                        receivedMessage.operation + "]</p>";
-    }
-});

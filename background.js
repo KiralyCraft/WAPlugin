@@ -1,4 +1,11 @@
 
+import Settings from './general-settings.js';
+
+var BackgroundScriptPluginState = {
+    state : "Debug" /* "Debug", "Guided browsing", "Automatic browsing", "Automatic execution" */
+
+};
+
 let message = null; // the message
 let key = null; // my key (some sort of plug-in instalation ID)
 let version = chrome.runtime.getManifest().version;
@@ -6,13 +13,6 @@ let version = chrome.runtime.getManifest().version;
 let xhrTimer = null;
 
 console.log("Background.js starts ...");
-
-// import jquery
-/*try {
-  importScripts("jquery.min.js");
-} catch (e) {
-  console.error(e);
-}*/
 
 
 var NavigationHistory = [];
@@ -23,7 +23,11 @@ chrome.runtime.onMessage.addListener(async function(receivedMessage, sender, sen
     console.log("Background.js: Message received from the user's page: ", receivedMessage);
     message = receivedMessage; // just for the popup page
 
-    if (receivedMessage.request == "message_page_background_clickEvent") {
+    if (receivedMessage.request == "message_popup_background_StateChanged") {
+        console.log("Background script's state is now: ", receivedMessage.state);
+        BackgroundScriptPluginState.state = receivedMessage.state;
+
+    } else if (receivedMessage.request == "message_page_background_clickEvent") {
         if (receivedMessage.operation=="Click") {
             NavigationHistory.push({operation : "Click", target : receivedMessage.target, 
                                     targetText: receivedMessage.targetText});
@@ -132,7 +136,8 @@ chrome.alarms.onAlarm.addListener(
 
 
 async function getTargetTab() {
-    let activeTab = await chrome.tabs.query({ url: "http://172.30.3.49:5555/CRMEndava3/*" });
+    //let activeTab = await chrome.tabs.query({ url: "http://172.30.3.49:5555/CRMEndava3/*" });
+    let activeTab = await chrome.tabs.query({ url: Settings.targetAppURL });
     return activeTab;
 }
 

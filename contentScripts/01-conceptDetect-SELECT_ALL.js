@@ -446,7 +446,7 @@ function filterPossibleTableHeaders(_detectedTextElements)
 	let conceptMatrix = [];
 	for (knownDataModelIndex in DataModel) 
 	{
-		if (knownDataModelIndex !== "ForeignKeys")
+		if ((knownDataModelIndex !== "ForeignKeys") && ((knownDataModelIndex !== "PrimaryKeys")))
 		{
 			let studiedDataModel = DataModel[knownDataModelIndex];
 			for (detectedElementIndex in _detectedTextElements)
