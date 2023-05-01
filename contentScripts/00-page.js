@@ -21,7 +21,14 @@ var ContentScriptPluginState = {
     state : "Debug" /* "Debug", "Guided browsing", "Automatic browsing", "Automatic execution" */
 };
 
-
+var diffDOM = [];
+// The structure of diffDOM (i.e. the difference DOM) is :
+// [ {"root" : root.body, "diffAncestor": diffAncestor }, {"root" : root.body, "diffAncestor": diffAncestor }, ... ]    
+// The structure is just an array of diffAncestors. For each root of the current html document
+// (i.e. a "root" is just the document.body or window.frames[i].document.body for all frames included
+// in the current html document), the "diffAncestor" property is the common ancestor tag (i.e. common within
+// its corresponding root) containing all updated tags within that specific root (i.e. tags without 
+// the taskmateID attribute). 
 
 var textElementsWithInputs = [];
 // The structure of textElementsWithInputs is :
@@ -59,9 +66,10 @@ document.addEventListener('load', function(event) {
 }*/
 
 
- // highlight all visible clickable elements
-let clickableElements = getAllClickableElements();
-console.log('clickableElements: ', clickableElements);
+// highlight all visible clickable elements
+// TODO: Commented out for debugging; they need to be uncommented 
+/*let clickableElements = getAllClickableElements();
+console.log('clickableElements: ', clickableElements);*/
 
 
 monitorClickEventsOnAllDocuments();
@@ -134,6 +142,10 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         (async () => {
             console.log("Msg. message_background_page_mapUIOperation received from background.");
             await pause(10000);
+            // associate new tags with the attribute "taskmateID" and compute the diffDOM
+            diffDOM = computeDifferenceDOM();
+            console.log("chrome.runtime.onMessage.addListener(): diffDOM = ", diffDOM);
+    
             let detectedConceptOperation = processDOMDifference();
             if ((detectedConceptOperation.concept!=null) || (detectedConceptOperation.operation!=null)) {
                 // sending message to popup.js
@@ -193,8 +205,9 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
             chrome.runtime.sendMessage({request: "message_page_popup_UIOperationCompleted"});
 
             // highlight all visible clickable elements
-            let clickableElements = getAllClickableElements();
-            console.log('clickableElements: ', clickableElements);
+            //TODO: Uncomment this, it is commented out only for debug
+            /*let clickableElements = getAllClickableElements();
+            console.log('clickableElements: ', clickableElements);*/
         })();
 
     } else if (receivedMessage.request == "message_background_page_updatePhantomDOM") {
@@ -268,8 +281,8 @@ function saveDOMDifftoLocalStorage() {
       // save DOM string to local storage
       chrome.storage.local.set({ "FullDOMstring": FullDOMstring }, function(){} );
       
-      // give each tag element TaskMate custom attributes
-      walkDOM(document.body);
+      // give each tag element TaskMate custom attributes; we don't care here about diffDOM
+      computeDiffDOMwithinRoot(document.body);
 }
 
 function processDOMDifference() {
@@ -277,8 +290,21 @@ function processDOMDifference() {
     let fullDOM = window.frames[0].document.body.innerHTML;
     let innerText = window.frames[0].document.body.innerText;
     let root = getDocumentRoot();
-    let textElements = getTextElements(root.body, true /*only visible elements*/);
-    
+    // TODO: Asa faceam pt. Dynamics CRM 2016; am modificat pt Jira, sa verific ca mai merge pt. Dynamics 2016
+    //let textElements = getTextElements(root.body, true /*only visible elements*/);
+    let i = 0;
+    diffAncestor = root.body;
+    while (i<diffDOM.length) {
+        if (diffDOM[i].diffAncestor != null) {
+            diffAncestor = diffDOM[i].diffAncestor;
+            break;
+        }
+        i++;
+    }
+    console.log("processDOMDifference(): diffDOM = ", diffDOM);
+    console.log("processDOMDifference(): searching text elements in diffAncestor ", diffAncestor);
+    let textElements = getTextElements(diffAncestor, true /*only visible elements*/);
+
     console.log("textElements are:");
     textElements.forEach(function(node) {
         console.log(node.innerText, node);
@@ -313,29 +339,6 @@ function processDOMDifference() {
     return detectedConceptOperation;
 }
 
-
-function walkDOM(main) {
-    // TODO: bufny
-    //var arr = [];
-    let taskmateID = 1;
-    var loop = function(main) {
-        
-        do {
-            //arr.push(main);
-            if (main.nodeType == 1) {    // ignore text nodes
-                //console.log("setting custom attribute for", main);
-                main.setAttribute("taskmateID", taskmateID);
-                taskmateID ++;
-            }
-
-            if(main.hasChildNodes())
-                loop(main.firstChild);
-        }
-        while (main = main.nextSibling);
-    }
-    loop(main);
-    //return arr;
-}
 
 function getTextElements(root, onlyVisibleNodes=false) {
     function numberOfDirectTextChildNodes(node) {

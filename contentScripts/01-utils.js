@@ -57,6 +57,7 @@ function getClosestAncestorWithVerticalScroll(root, node) {
 
 function getClosestCommonAncestor(root, node1, node2) {
     if (node1 == node2) return node1;
+    if (node1.isEqualNode(root) || node2.isEqualNode(root)) return root;
     if (node1.contains(node2)) return node1;
     if (node2.contains(node1)) return node2;
     let parent = node1;
@@ -66,6 +67,17 @@ function getClosestCommonAncestor(root, node1, node2) {
     }
     return null;
 }
+
+function getClosestCommonAncestorForArray(root, nodes) {
+    if (nodes.length==0) return null;
+    let commonAncestor = nodes[0];
+    for(let i=1; i<nodes.length; i++) {
+        commonAncestor = getClosestCommonAncestor(root, commonAncestor, nodes[i]);
+        if (commonAncestor.isEqualNode(root)) return root;
+    }
+    return commonAncestor;
+}
+
 
 function getPathInDOM(root, node) {
     let path = [];
@@ -248,14 +260,52 @@ function getAllClickableElements() {
 }
 
 
-//var textElementsWithInputs = [];
-// The structure of textElementsWithInputs is :
-// [{"textNode" : textNode, "inputNode" : associatedInputNode, "inputNodeTag" : associatedInputNode.tagName,
-//   "relativePosition" : "..." } ... ]
-// The "relativePosition" attribute is the position of the inputNode relative to the textNode and it can be:
-// null | right&!below | !right&below | right&below
+function computeDifferenceDOM() {
+    let diffDOM = [];
+    // The structure of diffDOM (i.e. the difference DOM) is :
+    // [ {"root" : root.body, "diffAncestor": diffAncestor }, {"root" : root.body, "diffAncestor": diffAncestor }, ... ]    
+    // The structure is just an array of diffAncestors. For each root of the current html document
+    // (i.e. a "root" is just the document.body or window.frames[i].document.body for all frames included
+    // in the current html document), the "diffAncestor" property is the common ancestor tag (i.e. common within
+    // its corresponding root) containing all updated tags within that specific root (i.e. tags without 
+    // the taskmateID attribute).
 
+    let roots = getFramesRoots();
+    for(let i=0; i<roots.length; i++) {
+        let partialDiff = computeDiffDOMwithinRoot(roots[i].body);
+        if (partialDiff.length>0) {
+            let diffAncestor = getClosestCommonAncestorForArray(roots[i].body, partialDiff);
+            diffDOM.push({"root": roots[i].body, "diffAncestor": diffAncestor });
+        } else {
+            diffDOM.push({"root": roots[i].body, "diffAncestor": null });
+        }
+    }    
 
-function getClosestCommonAncestorForArray(root, nodes) {
-
+    return diffDOM;
 }
+
+function computeDiffDOMwithinRoot(root) {
+    var newTags = [];
+    let taskmateID = 1; // for now, we don't need taskmateIDs to be uniq (but we may need this in the future)
+    var loop = function(main) {
+        do {
+            if (main.nodeType == 1) {    // ignore text nodes
+                //console.log("setting custom attribute for", main);
+                let attr = main.getAttribute("taskmateID");
+                if ((attr==null) || (attr=="")) {
+                    newTags.push(main);
+                }
+                main.setAttribute("taskmateID", taskmateID);
+                taskmateID ++;
+            }
+
+            if(main.hasChildNodes())
+                loop(main.firstChild);
+        }
+        while (main = main.nextSibling);
+    }
+    loop(root);
+    return newTags;
+}
+
+
