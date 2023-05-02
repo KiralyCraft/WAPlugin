@@ -305,6 +305,13 @@ function computeDiffDOMwithinRoot(root) {
         while (main = main.nextSibling);
     }
     loop(root);
+
+    // BUG. Doublecheck everything because for Jira, some tags remain without taskmateID attribute
+    root.querySelectorAll(":not([taskmateID])").forEach(function(elem) {
+        element.setAttribute("taskmateID", taskmateID);
+        taskmateID++;
+    })
+
     return newTags;
 }
 

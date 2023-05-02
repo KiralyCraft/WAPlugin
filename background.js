@@ -6,6 +6,8 @@ var BackgroundScriptPluginState = {
 
 };
 
+var activeTabURL = "";
+
 let message = null; // the message
 let key = null; // my key (some sort of plug-in instalation ID)
 let version = chrome.runtime.getManifest().version;
@@ -158,9 +160,13 @@ chrome.tabs.onActivated.addListener(async function (tabId, changeInfo, tab) {
 
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
     if (changeInfo.status === 'complete') {
-        console.log("tabs.onUpdated event.. tabId=", tabId, tab);
+        console.log("tabs.onUpdated event.. tabId=", tabId, " changeInfo=", changeInfo, " tab=", tab);
         let activeTab = await getTargetTab();
         console.log("activeTab:", activeTab, activeTab[0].id);
+        if (activeTabURL != activeTab[0].url) {
+            changeInfo.url = activeTab[0].url;
+            activeTabURL = activeTab[0].url;
+        }
         if (changeInfo.url) {
             console.log(`Tab: ${tabId} URL changed to ${changeInfo.url}`);
             //console.log("Background.js: sending message to content.js.");
@@ -168,10 +174,24 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
             //    console.log("received response from content script:", response);
             //});
             console.log("Background.js: injecting content script in tab.");
-            chrome.scripting.executeScript({
+            /*chrome.scripting.executeScript({
                 target: {tabId: tabId, allFrames: false},
                 files: ['contentScripts/00-datamodel-spec.js','contentScripts/00-page.js']
-            }); 
+            });*/
+            let contentScripts = chrome.runtime.getManifest().lazyContentScripts;
+            for (let scriptIndex in contentScripts)
+            {
+                let scriptName = contentScripts[scriptIndex];
+                //Ghetto workaround for deep copying this thing
+                (function (scriptNameDeep)
+                {
+                    chrome.scripting.executeScript({
+                        target: {tabId: tabId, allFrames: false},
+                        files: [ scriptNameDeep ]
+                    });
+                })(scriptName);
+            }
+
         }
     }
 });

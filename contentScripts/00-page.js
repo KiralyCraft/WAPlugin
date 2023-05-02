@@ -142,72 +142,8 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         (async () => {
             console.log("Msg. message_background_page_mapUIOperation received from background.");
             await pause(10000);
-            // associate new tags with the attribute "taskmateID" and compute the diffDOM
-            diffDOM = computeDifferenceDOM();
-            console.log("chrome.runtime.onMessage.addListener(): diffDOM = ", diffDOM);
-    
-            let detectedConceptOperation = processDOMDifference();
-            if ((detectedConceptOperation.concept!=null) || (detectedConceptOperation.operation!=null)) {
-                // sending message to popup.js
-                chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
-                        operation : detectedConceptOperation.operation, 
-                        concept : detectedConceptOperation.concept});
-                // sending message to background.js
-                console.log("sending message_page_background_operationDetected to Background");
-                chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
-                        operation : detectedConceptOperation.operation, 
-                        concept : detectedConceptOperation.concept});
-                DOMState.currentDOM.operation = detectedConceptOperation.operation;
-                DOMState.currentDOM.concept = detectedConceptOperation.concept;
-                await pause(5000);
-                undoHighlightTextInputElemAssociations(getDocumentRoot());
-                undoHighlightInputElements();
-            } else {
-                let tables = detectTables();
-                let tableConcepts = detectConceptInTables(tables);
-                if ((tables != null) && (tables.length>0)) {
-                    // sending message to popup.js
-                    chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
-                            operation : "SELECTALL", 
-                            concept : tableConcepts});
-                    // sending message to background.js
-                    console.log("sending message_page_background_operationDetected to Background");
-                    chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
-                            operation : "SELECTALL", 
-                            concept : tableConcepts});
-                    DOMState.currentDOM.operation = "SELECTALL";
-                    DOMState.currentDOM.concept = tableConcepts;
-                    await pause(5000);
-                    undoHighlightTables(tables);
-                    // undo table row highlight
-                    for(let i=0; i<tables.length; i++) {
-                        let rowclusterRoots = [];
-                        for(let j=0; j<tables[i].rows.length; j++) {
-                            rowclusterRoots.push(tables[i].rows[j].rowclusterRoot);                
-                        }
-                        undoHighlightRowClusters(rowclusterRoots);
-                    }
-                } else {
-                    // sending message to popup.js
-                    chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
-                            operation : "Generic DOM", 
-                            concept : ""});
-                    // sending message to background.js
-                    console.log("sending message_page_background_operationDetected to Background");
-                    chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
-                            operation : "Generic DOM", 
-                            concept : ""});
-                    DOMState.currentDOM.operation = "Generic DOM";
-                    DOMState.currentDOM.concept = "";
-                }
-            }
-            // announce popup.js that the UI operation was completed
-            chrome.runtime.sendMessage({request: "message_page_popup_UIOperationCompleted"});
 
-            // highlight all visible clickable elements
-            //TODO: Uncomment this, it is commented out only for debug
-            /*let clickableElements = getAllClickableElements();
-            console.log('clickableElements: ', clickableElements);*/
+            mapUIOperation();
         })();
 
     } else if (receivedMessage.request == "message_background_page_updatePhantomDOM") {
@@ -220,10 +156,15 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         // chrome.storage.local.get(/* String or Array */["FullDOMstring"], function(items){
         //    console.log(items);
         // });
+
         sendResponse({response: "message_page_background_updatePhantomDOM",
             result : "Phantom DOM updated successfully."});
     } else if (receivedMessage.request == "message_popup_page_processDOMDifference") {
         console.log("Running processDOMDifference() ...");
+
+        // TODO: remove this - este doar de test
+        mapUIOperation();
+
         let detectedConceptOperation = processDOMDifference();
         var node = null;
 /*        chrome.storage.local.get(["ClickedElementID"], function(item) {
@@ -267,6 +208,80 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 });
 
 
+async function mapUIOperation() {
+    // associate new tags with the attribute "taskmateID" and compute the diffDOM
+    diffDOM = computeDifferenceDOM();
+    // BUG !!! Doublecheck everything because for Jira, some tags remain without taskmateID attribute
+    /*document.querySelectorAll("body :not([taskmateID])").forEach(function(elem) {
+        element.setAttribute("taskmateID", -1);
+    })*/
+    console.log("mapUIOperation(): mapping UI operation, diffDOM = ", diffDOM);
+
+    let detectedConceptOperation = processDOMDifference();
+    if ((detectedConceptOperation.concept!=null) || (detectedConceptOperation.operation!=null)) {
+        // sending message to popup.js
+        chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
+                operation : detectedConceptOperation.operation, 
+                concept : detectedConceptOperation.concept});
+        // sending message to background.js
+        console.log("sending message_page_background_operationDetected to Background");
+        chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                operation : detectedConceptOperation.operation, 
+                concept : detectedConceptOperation.concept});
+        DOMState.currentDOM.operation = detectedConceptOperation.operation;
+        DOMState.currentDOM.concept = detectedConceptOperation.concept;
+        await pause(5000);
+//        undoHighlightTextInputElemAssociations(getDocumentRoot());
+//        undoHighlightInputElements();
+    } else {
+        let tables = detectTables();
+        let tableConcepts = detectConceptInTables(tables);
+        if ((tables != null) && (tables.length>0)) {
+            // sending message to popup.js
+            chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
+                    operation : "SELECTALL", 
+                    concept : tableConcepts});
+            // sending message to background.js
+            console.log("sending message_page_background_operationDetected to Background");
+            chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                    operation : "SELECTALL", 
+                    concept : tableConcepts});
+            DOMState.currentDOM.operation = "SELECTALL";
+            DOMState.currentDOM.concept = tableConcepts;
+            await pause(5000);
+            undoHighlightTables(tables);
+            // undo table row highlight
+            for(let i=0; i<tables.length; i++) {
+                let rowclusterRoots = [];
+                for(let j=0; j<tables[i].rows.length; j++) {
+                    rowclusterRoots.push(tables[i].rows[j].rowclusterRoot);                
+                }
+                undoHighlightRowClusters(rowclusterRoots);
+            }
+        } else {
+            // sending message to popup.js
+            chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
+                    operation : "Generic DOM", 
+                    concept : ""});
+            // sending message to background.js
+            console.log("sending message_page_background_operationDetected to Background");
+            chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                    operation : "Generic DOM", 
+                    concept : ""});
+            DOMState.currentDOM.operation = "Generic DOM";
+            DOMState.currentDOM.concept = "";
+        }
+    }
+    // announce popup.js that the UI operation was completed
+    chrome.runtime.sendMessage({request: "message_page_popup_UIOperationCompleted"});
+
+    // highlight all visible clickable elements
+    //TODO: Uncomment this, it is commented out only for debug
+    /*let clickableElements = getAllClickableElements();
+    console.log('clickableElements: ', clickableElements);*/
+
+}
+
 function saveDOMDifftoLocalStorage() {
       //let fullDOM = document.body.innerHTML;
       // consider only the DOM of the iframe:
@@ -287,8 +302,15 @@ function saveDOMDifftoLocalStorage() {
 
 function processDOMDifference() {
     //let iframeDocument = window.frames[0].contentDocument || window.frames[0].contentWindow.document;
-    let fullDOM = window.frames[0].document.body.innerHTML;
-    let innerText = window.frames[0].document.body.innerText;
+    let fullDOM = "";
+    let innerText = "";
+    if (window.frames.length > 0) {
+        fullDOM = window.frames[0].document.body.innerHTML;
+        innerText = window.frames[0].document.body.innerText;
+    } else {
+        fullDOM = document.body.innerHTML;
+        innerText = document.body.innerText;
+    }
     let root = getDocumentRoot();
     // TODO: Asa faceam pt. Dynamics CRM 2016; am modificat pt Jira, sa verific ca mai merge pt. Dynamics 2016
     //let textElements = getTextElements(root.body, true /*only visible elements*/);
@@ -301,9 +323,10 @@ function processDOMDifference() {
         }
         i++;
     }
+    root = diffAncestor;
     console.log("processDOMDifference(): diffDOM = ", diffDOM);
     console.log("processDOMDifference(): searching text elements in diffAncestor ", diffAncestor);
-    let textElements = getTextElements(diffAncestor, true /*only visible elements*/);
+    let textElements = getTextElements(root, true /*only visible elements*/);
 
     console.log("textElements are:");
     textElements.forEach(function(node) {
@@ -311,9 +334,9 @@ function processDOMDifference() {
     })
     highlightElements(textElements, "green");
 
-    highlightInputElements(root.body);
+    highlightInputElements(root);
 
-    textElementsWithInputs = getAssociatedInputElements(root.body, textElements);
+    textElementsWithInputs = getAssociatedInputElements(root, textElements);
     
     highlightTextInputElemAssociations(root /*window.frames[0].document*/);
 
@@ -326,7 +349,7 @@ function processDOMDifference() {
     console.log("Concept detected: ", detectedConceptOperation);
 
     // detectam atribute Foreign Keys
-    let FKFields = detectForeignKeyFields(detectedConceptOperation.concept, textElements, root.body);
+    let FKFields = detectForeignKeyFields(detectedConceptOperation.concept, textElements, root);
     // The structure of FKFields is:
     //  [ {ForeignKey: entry.ForeignKey, TextElem : txtElem, AssocInputNode: null}, ... ] 
 
@@ -461,7 +484,7 @@ function highlightTextInputElemAssociations(root) {
             let inputNodePosition = computeScrollIndependentBoundingBox(item['inputNode']);
             let textNodePosition = computeScrollIndependentBoundingBox(item['textNode']);
             console.log("inputNodePosition: ", inputNodePosition, " textNodePosition: ", textNodePosition);
-            let canvas = root.createElement("canvas");
+            let canvas = document.createElement("canvas");
             canvas.setAttribute("class", "taskmate-canvas");
             canvas.setAttribute("id", item['textNode'].innerText+"|"+item['inputNode'].outerHTML);
             canvas.style.position = "absolute";
@@ -521,7 +544,7 @@ function highlightTextInputElemAssociations(root) {
                 ancestor.appendChild(canvas);
                 console.log("ClosestAncestorWithVerticalScroll", ancestor);
             } else  
-                root.body.appendChild(canvas);
+                root.appendChild(canvas);
             
             //console.log("canvas bounding box: ", canvas.getBoundingClientRect());
 
@@ -545,6 +568,10 @@ function undoHighlightTables(tables) {
     }
 }
 
+
+// Force Page.js to detect an UI operation on a newly loaded document/URL/tab
+// This should be the last code in page.js
+//mapUIOperation();
 
 
 

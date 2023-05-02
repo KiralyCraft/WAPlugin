@@ -269,8 +269,8 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     	//document.querySelector(".progress").style.display = "none";
     } else if (receivedMessage.request =="message_page_popup_operationDetected") {
     	document.querySelector("#navigationMap").innerHTML = 
-                  		"<p>[" + "preLeafNode" + "] -> [Concept: " + receivedMessage.concept + ", Operation: " + 
-                        receivedMessage.operation + "]</p>";
+                "<p>[" + "preLeafNode" + "] -> [Concept: " + receivedMessage.concept + ", Operation: " + 
+                receivedMessage.operation + "]</p>";
     }
 });
 
