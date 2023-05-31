@@ -53,7 +53,13 @@ function getAssociatedInputElements(root, textElements) {
     // text node situated in the North-Vest quadrant (i.e. an input will always be placed on
     // the right or on the bottom or on the right-bottom of its associated label).
     let textAndInputNodes = [];
-    root.querySelectorAll("input[type='text'],select,textarea").forEach(function(inputNode) {
+    let selector = "";
+    if (checkCustomTaskmateAttribute == true) {
+        selector = "input[type='text']:not([taskmateID]),select:not([taskmateID]),textarea:not([taskmateID])";
+    } else {
+        selector = "input[type='text'],select,textarea";
+    }
+    root.querySelectorAll(selector).forEach(function(inputNode) {
         let inputNodePosition = computeScrollIndependentBoundingBox(inputNode);
         let assocTextNode = null;
         let minimumDistance = 1000; // a large enough value
@@ -120,24 +126,98 @@ function getAssociatedInputElements(root, textElements) {
 }
 
 
-function detectConcept(text) {
-    let detectedConcept = "";
-
+function detectConcept(textElements) {
+    /* this function detects a concept among a set of text labels */
+    let detectedConcept = null;
+    let textLabels = [];
+    
     for (concept in DataModel) {
         if ((concept=="ForeignKeys") || (concept=="PrimaryKeys")) continue; 
+
         console.log(concept, DataModel[concept]);
-        let occurences = 0;
+        let attributeOccurences = 0;
         for (property of DataModel[concept]) {
-            if (text.includes(property)) occurences++;
-            //console.log(property, occurences);
+            let i = 0;
+            while (i<textElements.length) {
+                if (textElements[i].innerText.toLowerCase().includes(property.toLowerCase())) {
+                    
+                    attributeOccurences++;
+                    break;
+                }
+                i++;
+            }
+            console.log("detectConcept(): ", property, attributeOccurences);
         };
-        console.log("occurences=", occurences, " noOfProperties=", DataModel[concept].length);
-        if (occurences==DataModel[concept].length) {
-            detectedConcept = concept;
+        console.log("detectConcept(): attributeOccurences=", attributeOccurences, " noOfProperties=", DataModel[concept].length);
+        if (attributeOccurences==DataModel[concept].length) {
+            detectedConcept = concept;  
+            textLabels = DataModel[concept];        
+            break;
         }
     }
 
-    return detectedConcept;
+    return {detectedConcept, textLabels};
+};
+
+function detectOperation(textElementsWithInputs, detectedConcept) {
+    /* this function detects an operation from a set of textNode<->inputNode association; the concept is already detected.
+     * this function is almost identical with detectConceptAndOperation(), except for the fact that,
+     * here, the concept is already known.
+     */
+    /* Pentru detectia operatiei (SELECT, INSERT, UPDATE), pluginul face urmatoarele:
+     * -- acolo unde detecteaza un atribut textual al conceptului in DOM (acest atribut va fi un label),
+     * trebuie sa gasim si un "<input type=text>|<select>|<textarea>" in apropierea acestul atribut 
+     * textual (i.e. text inputul legat de acest label); acest tag-ul de input este asociat acestui 
+     * label in documentul randat in browser; detectam astfel toate input-urile sau text area sau 
+     * select-urile asociate fiecarui atribut textual al conceptului detectat.
+     * -- daca nu gasim nici un astfel de control de input (e.g. input type text, text area, select),
+     * inseamna ca operatia este SELECT.
+     * -- daca gasim controale de input si daca aceste input-uri nu au valoare (sunt goale), operatia 
+     * este INSERT.
+     * -- altfel, daca cel putin un astfel de input are valoare, operatia e UPDATE.
+     */
+    let operation = null;
+    if ((detectedConcept==null) || (detectedConcept=="")) return null;
+    
+    let attributeOccurences = 0;
+    let inputNodesCount = 0;
+    let nonemptyInputNodesCount = 0;
+    for (property of DataModel[detectedConcept]) {
+        let i = 0;
+        while (i<textElementsWithInputs.length) {
+            if (textElementsWithInputs[i].textNode && 
+                textElementsWithInputs[i].textNode.innerText.toLowerCase().includes(property.toLowerCase())) {
+                
+                attributeOccurences++;
+                if (textElementsWithInputs[i].inputNode && 
+                    ((textElementsWithInputs[i].inputNodeTag.toUpperCase() == "INPUT") ||
+                    (textElementsWithInputs[i].inputNodeTag.toUpperCase() == "TEXTAREA"))) {
+                    // we should have also tested the value of SELECT, but we ignore them for now
+                    inputNodesCount++;
+                    if (textElementsWithInputs[i].inputNode.value != "") {
+                        nonemptyInputNodesCount++;    
+                    }
+                }
+
+                break;
+            }
+            i++;
+        }
+        //console.log(property, attributeOccurences);
+    };
+    //console.log("detectOperation(): attributeOccurences=", attributeOccurences, " noOfProperties=", 
+    //            DataModel[detectedConcept].length);
+    if (attributeOccurences==DataModel[detectedConcept].length) {
+        if (inputNodesCount==0) {
+            operation = "SELECT";
+        } else if (nonemptyInputNodesCount > 1) { // it can also be ">0"
+            operation = "UPDATE";
+        } else {
+            operation = "INSERT";
+        }          
+    }
+
+    return detectedConceptOperation;
 };
 
 function detectConceptAndOperation(textElementsWithInputs) {
@@ -243,7 +323,13 @@ function detectForeignKeyFields(concept, textElements, root) {
         let minDistance = 0xffffffff;
         let assocInputNode = null;
 
-        root.querySelectorAll(":not(.taskmate-canvas)").forEach(function(node) {
+        let selector = "";
+        if (checkCustomTaskmateAttribute == true) {
+            selector = ":not([taskmateID],.taskmate-canvas)";
+        } else {
+            selector = ":not(.taskmate-canvas)";
+        }
+        root.querySelectorAll(selector).forEach(function(node) {
             // the input node associated with a label must be visible and it should either contain
             // non empty string or it should have a border (to make it visible to the human user),
             // and it should be in the South-East quadrant of the label; please note that here, the

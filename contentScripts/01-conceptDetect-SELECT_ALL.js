@@ -8,12 +8,12 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 		 if (receivedMessage.parameters.algorithm == "alternative")
 		 {
 			 let tableDetection = executeDetectionProcedure();
-			 highlightElements(tableDetection);
+			 highlightTableElement(tableDetection);
 		 }
 	}
 });
 
-function highlightElements(_tableDetection)
+function highlightTableElement(_tableDetection)
 {
 	console.log(_tableDetection);
 }

@@ -34,7 +34,8 @@ function isElementVisible(item) {
     let boundingBox = computeScrollIndependentBoundingBox(item);
     if ((style.visibility=="hidden") || (style.display=="none") || (style.opacity=="0") ||
         (style.top<0) || (style.bottom<0) || (style.left<0) || (style.right<0) ||
-        (boundingBox.top<0) || (boundingBox.bottom<0) || (boundingBox.left<0) || (boundingBox.right<0)) {
+        (boundingBox.top<0) || (boundingBox.bottom<0) || (boundingBox.left<0) || (boundingBox.right<0) ||
+        (boundingBox.height<=1) || (boundingBox.width<=1)) {
             return false;
     }
     return true;
@@ -73,9 +74,45 @@ function getClosestCommonAncestorForArray(root, nodes) {
     let commonAncestor = nodes[0];
     for(let i=1; i<nodes.length; i++) {
         commonAncestor = getClosestCommonAncestor(root, commonAncestor, nodes[i]);
-        if (commonAncestor.isEqualNode(root)) return root;
+        if (commonAncestor.isEqualNode(root)) {
+            return root;
+        }
     }
     return commonAncestor;
+}
+
+/* Clusterize the elements in nodes into the minimum number of common ancestors.
+ * A nodes[i] is a common ancestor if it contains other node[j] elem or no other node 
+ * from nodes[] contains it. 
+ */
+function clusterizeNodesIntoPanels(root, nodes) {
+    if (nodes.length==0) return null;
+    let ancestors = [nodes[0]];
+    for(let i=1; i<nodes.length; i++) {
+        let newAncestor = true;
+        for (let j=0; j<ancestors.length; j++) {
+            if (ancestors[j].contains(nodes[i])) {
+                newAncestor = false;
+                break;
+            } else if (nodes[i].contains(ancestors[j])) {
+                newAncestor = false;
+                // restructure ancestors and clusterize possible elements 
+                let tmpAncestors = [nodes[i]];
+                for(let k=0; k<ancestors.length; k++) {
+                    if (!(nodes[i].contains(ancestors[k]))) {
+                        tmpAncestors.push(ancestors[k]);
+                    }
+                }
+                ancestors = tmpAncestors;
+                break;
+            }
+        }
+        if (newAncestor) {
+            ancestors.push(nodes[i]);
+        }
+
+    }
+    return ancestors;
 }
 
 
@@ -262,22 +299,16 @@ function getAllClickableElements() {
 
 function computeDifferenceDOM() {
     let diffDOM = [];
-    // The structure of diffDOM (i.e. the difference DOM) is :
-    // [ {"root" : root.body, "diffAncestor": diffAncestor }, {"root" : root.body, "diffAncestor": diffAncestor }, ... ]    
-    // The structure is just an array of diffAncestors. For each root of the current html document
-    // (i.e. a "root" is just the document.body or window.frames[i].document.body for all frames included
-    // in the current html document), the "diffAncestor" property is the common ancestor tag (i.e. common within
-    // its corresponding root) containing all updated tags within that specific root (i.e. tags without 
-    // the taskmateID attribute).
 
     let roots = getFramesRoots();
     for(let i=0; i<roots.length; i++) {
         let partialDiff = computeDiffDOMwithinRoot(roots[i].body);
         if (partialDiff.length>0) {
             let diffAncestor = getClosestCommonAncestorForArray(roots[i].body, partialDiff);
-            diffDOM.push({"root": roots[i].body, "diffAncestor": diffAncestor });
+            let diffPanels = clusterizeNodesIntoPanels(roots[i].body, partialDiff);
+            diffDOM.push({"root": roots[i].body, "ancestor": diffAncestor, "diffPanels": diffPanels });
         } else {
-            diffDOM.push({"root": roots[i].body, "diffAncestor": null });
+            diffDOM.push({"root": roots[i].body, "ancestor" : null, "diffPanels": [] });
         }
     }    
 
@@ -285,18 +316,36 @@ function computeDifferenceDOM() {
 }
 
 function computeDiffDOMwithinRoot(root) {
+    /*function numberOfDirectTextChildNodes(node) {
+        let count =0;
+        for (let i = 0; i < node.childNodes.length; i++) {
+            if (node.childNodes[i].nodeType === Node.TEXT_NODE) count++;
+        }
+        return count;
+    }*/
+
     var newTags = [];
     let taskmateID = 1; // for now, we don't need taskmateIDs to be uniq (but we may need this in the future)
     var loop = function(main) {
         do {
-            if (main.nodeType == 1) {    // ignore text nodes
+            if ((main.nodeType == 1) && (!main.classList.contains("taskmate-canvas"))) {    
+                // ignore text nodes (nodeType != 1) and our own canvas tags (class = "taskmate-canvas")
+                
                 //console.log("setting custom attribute for", main);
                 let attr = main.getAttribute("taskmateID");
                 if ((attr==null) || (attr=="")) {
-                    newTags.push(main);
+                    // if main is just a tag that covers the whole browser window and is used 
+                    // for displaying a dialog window, don't add this to the newTags because it
+                    // might disrupt the computation of the common ancestor of the newTags set;
+                    // the 10px and 95% are just thresholds for robustness
+                    /*let boundingBox = computeScrollIndependentBoundingBox(main);                    
+                    if (!((numberOfDirectTextChildNodes(main)==0) && (boundingBox.top<10) && (boundingBox.left<10) &&
+                        (boundingBox.width > window.innerWidth*0.95) && (boundingBox.height > window.innerHeight*0.95))) 
+                    */      newTags.push(main);
                 }
-                main.setAttribute("taskmateID", taskmateID);
-                taskmateID ++;
+                //we do not set the custom Taskmate attribute anymore
+                //main.setAttribute("taskmateID", taskmateID);
+                //taskmateID ++;
             }
 
             if(main.hasChildNodes())
@@ -307,12 +356,41 @@ function computeDiffDOMwithinRoot(root) {
     loop(root);
 
     // BUG. Doublecheck everything because for Jira, some tags remain without taskmateID attribute
-    root.querySelectorAll(":not([taskmateID])").forEach(function(elem) {
+    /*root.querySelectorAll(":not([taskmateID],.taskmate-canvas)").forEach(function(elem) {
         element.setAttribute("taskmateID", taskmateID);
         taskmateID++;
-    })
+    })*/
 
     return newTags;
 }
 
 
+function addTaskmateAttribute(root) {
+    let taskmateID = 1; // for now, we don't need taskmateIDs to be uniq (but we may need this in the future)
+    var loop = function(main) {
+        do {
+            if ((main.nodeType == 1) && (!main.classList.contains("taskmate-canvas"))) {    
+                // ignore text nodes (nodeType != 1) and our own canvas tags (class = "taskmate-canvas")
+                
+                //console.log("setting custom attribute for", main);
+                let attr = main.getAttribute("taskmateID");
+                if ((attr==null) || (attr=="")) {
+                    main.setAttribute("taskmateID", taskmateID);
+                    taskmateID ++;
+                }
+            }
+
+            if(main.hasChildNodes())
+                loop(main.firstChild);
+        }
+        while (main = main.nextSibling);
+    }
+    loop(root);
+
+    // BUG. Doublecheck everything because for Jira, some tags remain without taskmateID attribute
+    /*root.querySelectorAll(":not([taskmateID],.taskmate-canvas)").forEach(function(elem) {
+        element.setAttribute("taskmateID", taskmateID);
+        taskmateID++;
+    })*/
+
+}

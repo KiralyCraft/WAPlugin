@@ -21,14 +21,17 @@ var ContentScriptPluginState = {
     state : "Debug" /* "Debug", "Guided browsing", "Automatic browsing", "Automatic execution" */
 };
 
+var checkCustomTaskmateAttribute = true;
+
 var diffDOM = [];
 // The structure of diffDOM (i.e. the difference DOM) is :
-// [ {"root" : root.body, "diffAncestor": diffAncestor }, {"root" : root.body, "diffAncestor": diffAncestor }, ... ]    
-// The structure is just an array of diffAncestors. For each root of the current html document
-// (i.e. a "root" is just the document.body or window.frames[i].document.body for all frames included
-// in the current html document), the "diffAncestor" property is the common ancestor tag (i.e. common within
-// its corresponding root) containing all updated tags within that specific root (i.e. tags without 
-// the taskmateID attribute). 
+// [ {"root" : root.body, "ancestor" : ancestor, "diffPanels": diffpanels }, {"root" : root.body, "ancestor" : ancestor, "diffPanels": diffpanels}, ... ]    
+// The structure is just an array of domparts, one for each document root (i.e. main document root 
+// and iframes). For each root of the current html document (i.e. a "root" is just the document.body or 
+// window.frames[i].document.body for all frames included in the current html document), the 
+// "diffPanels" property is a list of common ancestor tag (i.e. common within its corresponding root) 
+// containing all updated tags within that specific root (i.e. tags without the taskmateID attribute); 
+// "ancestor" is the common ancestor of all "diffPanels" from that diff object. 
 
 var textElementsWithInputs = [];
 // The structure of textElementsWithInputs is :
@@ -37,7 +40,7 @@ var textElementsWithInputs = [];
 // The "relativePosition" attribute is the position of the inputNode relative to the textNode and it can be:
 // null | right&!below | !right&below | right&below
 var highlightedInputElements = [];
-// The structure of highlightedInputelements is :
+// The structure of highlightedInputElements is :
 // [{"inputNode" : inputNode, "styleInputNode" : inputNode.style, "ancestor" : ancestor, "styleAncestor" : ancestor.style} ...]
 
 
@@ -72,7 +75,8 @@ document.addEventListener('load', function(event) {
 console.log('clickableElements: ', clickableElements);*/
 
 
-monitorClickEventsOnAllDocuments();
+// TODO: Commented out for debugging; they need to be uncommented 
+//monitorClickEventsOnAllDocuments();
 
 function monitorClickEventsOnAllDocuments() {
     console.log ("There are ", window.frames.length, " frames in the current window.");
@@ -141,6 +145,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     } else if (receivedMessage.request == "message_background_page_mapUIOperation") {
         (async () => {
             console.log("Msg. message_background_page_mapUIOperation received from background.");
+            // wait for the UI operation to complete  
             await pause(10000);
 
             mapUIOperation();
@@ -162,10 +167,12 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     } else if (receivedMessage.request == "message_popup_page_processDOMDifference") {
         console.log("Running processDOMDifference() ...");
 
-        // TODO: remove this - este doar de test
+        // TODO: remove this - este doar de test si decomentam linia 
+        // detectedConceptOperation = processDOMDifference() de mai jos !!!!
         mapUIOperation();
+        let detectedConceptOperation = null;
 
-        let detectedConceptOperation = processDOMDifference();
+        //let detectedConceptOperation = processDOMDifference();
         var node = null;
 /*        chrome.storage.local.get(["ClickedElementID"], function(item) {
             console.log("Data saved in chrome.storage.local:",item);
@@ -180,11 +187,11 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         console.log("detectedConceptOperation: ", detectedConceptOperation);
         console.log("Sending response message to popup: message_page_popup_primaryNavigationBlockDetected:",
             {response: "message_page_popup_primaryNavigationBlockDetected",
-            preLeafNode: node, concept : detectedConceptOperation.concept, 
-            operation: detectedConceptOperation.operation});
+            preLeafNode: node, concept : detectedConceptOperation?.concept, 
+            operation: detectedConceptOperation?.operation});
         sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
-            preLeafNode: node, concept : detectedConceptOperation.concept, 
-            operation: detectedConceptOperation.operation});
+            preLeafNode: node, concept : detectedConceptOperation?.concept, 
+            operation: detectedConceptOperation?.operation});
     } else if (receivedMessage.request == "message_popup_page_detectTables") {
         if (receivedMessage.parameters.algorithm == "standard")
         {
@@ -193,7 +200,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     } else if (receivedMessage.request == "message_popup_page_undoHighlightInputs") {
         undoHighlightInputElements();
     } else if (receivedMessage.request == "message_popup_page_undoHighlightTextInputElemAssociations") {
-        undoHighlightTextInputElemAssociations(getDocumentRoot() /*window.frames[0].document*/); 
+        undoHighlightTextInputElemAssociations(); 
     } else if (receivedMessage.request == "message_popup_page_debug") {
         debug();
     } else if (receivedMessage.action == "action_popup_visible") {
@@ -212,26 +219,36 @@ async function mapUIOperation() {
     // associate new tags with the attribute "taskmateID" and compute the diffDOM
     diffDOM = computeDifferenceDOM();
     // BUG !!! Doublecheck everything because for Jira, some tags remain without taskmateID attribute
-    /*document.querySelectorAll("body :not([taskmateID])").forEach(function(elem) {
-        element.setAttribute("taskmateID", -1);
-    })*/
+    console.log("mapUIOperation(): tags that still don't have the Taskmate custom attribute: ");
+    document.querySelectorAll("body :not([taskmateID], .taskmate-canvas)").forEach(function(elem) {
+        //element.setAttribute("taskmateID", -1);
+        console.log(elem);
+    })
     console.log("mapUIOperation(): mapping UI operation, diffDOM = ", diffDOM);
 
-    let detectedConceptOperation = processDOMDifference();
-    if ((detectedConceptOperation.concept!=null) || (detectedConceptOperation.operation!=null)) {
+    let detectedConceptualOperations = processDOMDifference();
+    // For now, we only detect one conceptual operation
+    let conceptualOperation = null;
+    for (let i=0; i<detectedConceptualOperations.length; i++) {
+        if ((detectedConceptualOperations[i].concept!=null) || (detectedConceptualOperations[i].operation!=null)) {
+            conceptualOperation = detectedConceptualOperations[i];
+            break;
+        }
+    }
+    if (conceptualOperation != null) {
         // sending message to popup.js
         chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
-                operation : detectedConceptOperation.operation, 
-                concept : detectedConceptOperation.concept});
+                operation : conceptualOperation.operation, 
+                concept : conceptualOperation.concept});
         // sending message to background.js
         console.log("sending message_page_background_operationDetected to Background");
         chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
-                operation : detectedConceptOperation.operation, 
-                concept : detectedConceptOperation.concept});
-        DOMState.currentDOM.operation = detectedConceptOperation.operation;
-        DOMState.currentDOM.concept = detectedConceptOperation.concept;
+                operation : conceptualOperation.operation, 
+                concept : conceptualOperation.concept});
+        DOMState.currentDOM.operation = conceptualOperation.operation;
+        DOMState.currentDOM.concept = conceptualOperation.concept;
         await pause(5000);
-//        undoHighlightTextInputElemAssociations(getDocumentRoot());
+//        undoHighlightTextInputElemAssociations();
 //        undoHighlightInputElements();
     } else {
         let tables = detectTables();
@@ -275,6 +292,11 @@ async function mapUIOperation() {
     // announce popup.js that the UI operation was completed
     chrome.runtime.sendMessage({request: "message_page_popup_UIOperationCompleted"});
 
+    // add custom taskmate attribute to new tags
+    getFramesRoots().forEach(function(root) {
+            addTaskmateAttribute(root);
+    });
+
     // highlight all visible clickable elements
     //TODO: Uncomment this, it is commented out only for debug
     /*let clickableElements = getAllClickableElements();
@@ -301,8 +323,8 @@ function saveDOMDifftoLocalStorage() {
 }
 
 function processDOMDifference() {
-    //let iframeDocument = window.frames[0].contentDocument || window.frames[0].contentWindow.document;
-    let fullDOM = "";
+    // TODO: cred ca trebuie sa sterg codul de mai jos, nu mai e folosit
+    /*let fullDOM = "";
     let innerText = "";
     if (window.frames.length > 0) {
         fullDOM = window.frames[0].document.body.innerHTML;
@@ -310,56 +332,72 @@ function processDOMDifference() {
     } else {
         fullDOM = document.body.innerHTML;
         innerText = document.body.innerText;
-    }
-    let root = getDocumentRoot();
+    }*/
     // TODO: Asa faceam pt. Dynamics CRM 2016; am modificat pt Jira, sa verific ca mai merge pt. Dynamics 2016
+    // Pentru Dynamics 2016:
+    //let root = getDocumentRoot();
     //let textElements = getTextElements(root.body, true /*only visible elements*/);
-    let i = 0;
-    diffAncestor = root.body;
+    // Pentru Jira:
+    /*let i = 0;
+    let diffAncestor = root.body;
     while (i<diffDOM.length) {
-        if (diffDOM[i].diffAncestor != null) {
-            diffAncestor = diffDOM[i].diffAncestor;
+        if (diffDOM[i].ancestor != null) {
+            diffAncestor = diffDOM[i].ancestor;
             break;
         }
         i++;
     }
-    root = diffAncestor;
+    root = diffAncestor;*/
     console.log("processDOMDifference(): diffDOM = ", diffDOM);
-    console.log("processDOMDifference(): searching text elements in diffAncestor ", diffAncestor);
-    let textElements = getTextElements(root, true /*only visible elements*/);
-
-    console.log("textElements are:");
-    textElements.forEach(function(node) {
-        console.log(node.innerText, node);
-    })
-    highlightElements(textElements, "green");
-
-    highlightInputElements(root);
-
-    textElementsWithInputs = getAssociatedInputElements(root, textElements);
     
-    highlightTextInputElemAssociations(root /*window.frames[0].document*/);
+    let detectedConceptualOperations = [];
+    diffDOM.forEach(function(dompart) {
+        let root = dompart.ancestor;
+        if (root==null) return;
 
-    console.log("innerText: ", innerText);
-    // detect concepts in inner text content
-    //let detectedConcept = detectConcept(innerText);
-    //console.log("Concept detected: ", detectedConcept);
-    // detect concept and operation on concept/entity
-    let detectedConceptOperation = detectConceptAndOperation(textElementsWithInputs);
-    console.log("Concept detected: ", detectedConceptOperation);
+        let allTextElements = getTextElements(root, true /*only visible elements*/);
 
-    // detectam atribute Foreign Keys
-    let FKFields = detectForeignKeyFields(detectedConceptOperation.concept, textElements, root);
-    // The structure of FKFields is:
-    //  [ {ForeignKey: entry.ForeignKey, TextElem : txtElem, AssocInputNode: null}, ... ] 
+        console.log("textElements are:");
+        allTextElements.forEach(function(node) {
+            console.log(node.innerText, node);
+        })
+        highlightElements(allTextElements, "green");
 
-    // Deocamdata codul de executor e comentat
-    /*if (FKFields.length > 0) {
-        // trigger a seach on a list - just as an example of a simple executor
-        TriggerUISearchListShow(root, FKFields[0].AssocInputNode);
-    }*/
+        highlightInputElements(root);
 
-    return detectedConceptOperation;
+        // first detect the concept from the set of text labels
+        let {detectedConcept, textLabels} = detectConcept(allTextElements);
+
+        // associate input nodes to text labels
+        let labelsAndInputs = getAssociatedInputElements(root, textLabels);
+        textElementsWithInputs = textElementsWithInputs.concat(labelsAndInputs);
+
+        // detect the conceptual operation
+        let detectedOperation = detectOperation(labelsAndInputs, detectedConcept);
+        let conceptualOperation = {"concept": detectedConcept, "operation": detectedOperation};
+        console.log("Concept detected: ", conceptualOperation);
+
+        highlightTextInputElemAssociations(root /*window.frames[0].document*/);
+
+
+        // detectam atribute Foreign Keys
+        let FKFields = detectForeignKeyFields(conceptualOperation.concept, allTextElements, root);
+        // The structure of FKFields is:
+        //  [ {ForeignKey: entry.ForeignKey, TextElem : txtElem, AssocInputNode: null}, ... ] 
+
+        // Deocamdata codul de executor e comentat
+        /*if (FKFields.length > 0) {
+            // trigger a seach on a list - just as an example of a simple executor
+            TriggerUISearchListShow(root, FKFields[0].AssocInputNode);
+        }*/
+
+        if ((conceptualOperation.concept != null) && (conceptualOperation.operation != null)) {
+            detectedConceptualOperations.push(conceptualOperation);            
+        }
+
+    });
+
+    return detectedConceptualOperations;
 }
 
 
@@ -406,7 +444,13 @@ function getTextElements(root, onlyVisibleNodes=false) {
     });
 
     let textElements = [];
-    root.querySelectorAll("*").forEach(function(item) {
+    let selector = "";
+    if (checkCustomTaskmateAttribute == true) {
+        selector = ":not([taskmateID],.taskmate-canvas)";
+    } else {
+        selector = "*";
+    }
+    root.querySelectorAll(selector).forEach(function(item) {
         if ((item.childNodes.length==1) && (item.children.length==0) &&
             (item.tagName != "SCRIPT") && (item.tagName != "INPUT") && 
             (item.tagName != "SELECT") && (item.tagName != "OPTION") && 
@@ -431,7 +475,7 @@ function highlightElements(nodes, color) {
 }
 
 function highlightInputElements(root) {
-    highlightedInputelements = [];
+    highlightedInputElements = [];
 
     console.log("Input nodes: ");
     root.querySelectorAll("input[type='text'],select,textarea").forEach(function(node) {
@@ -462,12 +506,12 @@ function highlightInputElements(root) {
             ancestor.style.visibility = "visible";
         };
 
-        highlightedInputelements.push(elem);
+        highlightedInputElements.push(elem);
     });
 }
 
 function undoHighlightInputElements() {
-    highlightedInputelements.forEach(function(elem) {
+    highlightedInputElements.forEach(function(elem) {
         if (elem.inputNode) {
             elem.inputNode.style = elem.styleInputNode;
         }
@@ -543,7 +587,7 @@ function highlightTextInputElemAssociations(root) {
                 canvas.style.left = parseFloat(canvas.style.left) - ancestorRect.left + 'px';
                 ancestor.appendChild(canvas);
                 console.log("ClosestAncestorWithVerticalScroll", ancestor);
-            } else  
+            } else 
                 root.appendChild(canvas);
             
             //console.log("canvas bounding box: ", canvas.getBoundingClientRect());
@@ -552,8 +596,10 @@ function highlightTextInputElemAssociations(root) {
     });
 }
 
-function undoHighlightTextInputElemAssociations(root) {
-    root.querySelectorAll(".taskmate-canvas").forEach(function(node) {node.remove()})
+function undoHighlightTextInputElemAssociations() {
+    getFramesRoots().forEach(function(root) {
+        root.querySelectorAll(".taskmate-canvas").forEach(function(node) {node.remove()})
+    })
 }
 
 
