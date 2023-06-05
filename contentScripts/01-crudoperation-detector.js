@@ -59,18 +59,25 @@ function getAssociatedInputElements(root, textElements) {
     } else {
         selector = "input[type='text'],select,textarea";
     }
-    root.querySelectorAll(selector).forEach(function(inputNode) {
-        let inputNodePosition = computeScrollIndependentBoundingBox(inputNode);
-        let assocTextNode = null;
+    textElements.forEach(function(textNode) {
+        let textNodePosition = computeScrollIndependentBoundingBox(textNode);
+        let assocInputNode = null;
         let minimumDistance = 1000; // a large enough value
         let relativePosition = null;
-        textElements.forEach(function(textNode) {    
-            let textNodePosition = computeScrollIndependentBoundingBox(textNode);
+        let allInputs = root.querySelectorAll(selector); // TODO: se va comenta, nu mai e nevoie !!!!
+        root.querySelectorAll(selector).forEach(function(inputNode) {
+            let inputNodePosition = computeScrollIndependentBoundingBox(inputNode);        
             let distance = 1000; // a large enough value
             let pos = null;
-            if ((textNodePosition.right <= inputNodePosition.left) &&
-                (textNodePosition.top <= inputNodePosition.top) && 
-                (textNodePosition.bottom > inputNodePosition.top)) {
+            if (((textNodePosition.right <= inputNodePosition.left) &&
+                 (textNodePosition.top <= inputNodePosition.top) && 
+                 (textNodePosition.bottom > inputNodePosition.top)) ||
+                /* The next condition is for the case when inputNode is on the right of the 
+                 * textNode, but the textNode is vertically positioned between the top
+                 * and bottom of the inputNode - e.g. Jira */
+                ((textNodePosition.right <= inputNodePosition.left) &&
+                 (textNodePosition.top <= inputNodePosition.top + (0.25*textNodePosition.height)) && 
+                 (textNodePosition.bottom > inputNodePosition.top))) {
                 /* inputNode is on the (right & !below) of the textNode;
                  * so we compute the distance between textNode(top,right)
                  * and inputNode(top,left) corners.
@@ -101,25 +108,22 @@ function getAssociatedInputElements(root, textElements) {
 
             
             if (distance < minimumDistance) {
-                    assocTextNode = textNode;
+                    assocInputNode = inputNode;
                     minimumDistance = distance;
                     relativePosition = pos;
             } 
 
         });
 
-        if (assocTextNode != null) {
-            textAndInputNodes.push({"textNode" : assocTextNode, "inputNode" : inputNode, 
-                    "inputNodeTag" : inputNode.tagName, "relativePosition" : relativePosition});
-        } 
-        textElements.splice(textElements.indexOf(assocTextNode), 1);
-    });
-
-
-    // add the remaining text nodes (which do not have an input node correspondent)
-    textElements.forEach(function(textNode) {
-        textAndInputNodes.push({"textNode" : textNode, "inputNode" : null,
+        if (assocInputNode != null) {
+            console.log("getAssociatedInputElements(): textNode=", textNode, " assocInputNode=",
+                        assocInputNode, " position=", relativePosition);
+            textAndInputNodes.push({"textNode" : textNode, "inputNode" : assocInputNode, 
+                    "inputNodeTag" : assocInputNode.tagName, "relativePosition" : relativePosition});
+        } else {
+            textAndInputNodes.push({"textNode" : textNode, "inputNode" : null,
                     "inputNodeTag" : null, "relativePosition" : null});
+        } 
     });
 
     return textAndInputNodes;
@@ -139,8 +143,8 @@ function detectConcept(textElements) {
         for (property of DataModel[concept]) {
             let i = 0;
             while (i<textElements.length) {
-                if (textElements[i].innerText.toLowerCase().includes(property.toLowerCase())) {
-                    
+                if (trimNonAlphanumeric(textElements[i].innerText.toLowerCase()) == property.toLowerCase()) {
+                    textLabels.push(textElements[i]);                    
                     attributeOccurences++;
                     break;
                 }
@@ -149,10 +153,13 @@ function detectConcept(textElements) {
             console.log("detectConcept(): ", property, attributeOccurences);
         };
         console.log("detectConcept(): attributeOccurences=", attributeOccurences, " noOfProperties=", DataModel[concept].length);
-        if (attributeOccurences==DataModel[concept].length) {
-            detectedConcept = concept;  
-            textLabels = DataModel[concept];        
+        // The text labels should match at least 90% of the attributes of a concept from the DataModel 
+        // in order to conclude that a concept was found.
+        if (attributeOccurences >= DataModel[concept].length * 0.9) {
+            detectedConcept = concept;          
             break;
+        } else {
+            textLabels = [];
         }
     }
 
@@ -186,7 +193,7 @@ function detectOperation(textElementsWithInputs, detectedConcept) {
         let i = 0;
         while (i<textElementsWithInputs.length) {
             if (textElementsWithInputs[i].textNode && 
-                textElementsWithInputs[i].textNode.innerText.toLowerCase().includes(property.toLowerCase())) {
+                (trimNonAlphanumeric(textElementsWithInputs[i].textNode.innerText.toLowerCase()) == property.toLowerCase())) {
                 
                 attributeOccurences++;
                 if (textElementsWithInputs[i].inputNode && 
@@ -203,11 +210,14 @@ function detectOperation(textElementsWithInputs, detectedConcept) {
             }
             i++;
         }
-        //console.log(property, attributeOccurences);
+        console.log("detectOperation(): ", property, attributeOccurences);
     };
-    //console.log("detectOperation(): attributeOccurences=", attributeOccurences, " noOfProperties=", 
-    //            DataModel[detectedConcept].length);
-    if (attributeOccurences==DataModel[detectedConcept].length) {
+    console.log("detectOperation(): attributeOccurences=", attributeOccurences, " noOfProperties=", 
+                DataModel[detectedConcept].length);
+    
+    // The text labels should match at least 90% of the attributes of a concept from the DataModel 
+    // in order to conclude that a concept was found.
+    if (attributeOccurences >= DataModel[detectedConcept].length * 0.9) {
         if (inputNodesCount==0) {
             operation = "SELECT";
         } else if (nonemptyInputNodesCount > 1) { // it can also be ">0"
@@ -217,7 +227,7 @@ function detectOperation(textElementsWithInputs, detectedConcept) {
         }          
     }
 
-    return detectedConceptOperation;
+    return operation;
 };
 
 function detectConceptAndOperation(textElementsWithInputs) {
@@ -246,7 +256,7 @@ function detectConceptAndOperation(textElementsWithInputs) {
             let i = 0;
             while (i<textElementsWithInputs.length) {
                 if (textElementsWithInputs[i].textNode && 
-                    textElementsWithInputs[i].textNode.innerText.toLowerCase().includes(property.toLowerCase())) {
+                    (trimNonAlphanumeric(textElementsWithInputs[i].textNode.innerText.toLowerCase()) == property.toLowerCase())) {
                     
                     attributeOccurences++;
                     if (textElementsWithInputs[i].inputNode && 

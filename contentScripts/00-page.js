@@ -252,6 +252,11 @@ async function mapUIOperation() {
 //        undoHighlightInputElements();
     } else {
         let tables = detectTables();
+        // TODO: aici trebuie sa ma uit daca prima proprietate a doua concepte diferite este aceeasi
+        // (e.g. "No.") si o gasesc in prima celula din headerul tabelului, trebuie sa continui sa
+        // caut proprietatea a 2-a si apoi a 3-a si tot asa pana ramane un singur concept detectat
+        // in tabel; De asemenea, trebuie sa declar proprietatile pentru tabelul respectiv in DataModel
+        // in ordinea in care apar ele in capul de tabel din paginile web ale aplicatiei
         let tableConcepts = detectConceptInTables(tables);
         if ((tables != null) && (tables.length>0)) {
             // sending message to popup.js
@@ -351,6 +356,7 @@ function processDOMDifference() {
     console.log("processDOMDifference(): diffDOM = ", diffDOM);
     
     let detectedConceptualOperations = [];
+    textElementsWithInputs = [];
     diffDOM.forEach(function(dompart) {
         let root = dompart.ancestor;
         if (root==null) return;
@@ -367,6 +373,7 @@ function processDOMDifference() {
 
         // first detect the concept from the set of text labels
         let {detectedConcept, textLabels} = detectConcept(allTextElements);
+        highlightElements(textLabels, "red");
 
         // associate input nodes to text labels
         let labelsAndInputs = getAssociatedInputElements(root, textLabels);
@@ -377,8 +384,8 @@ function processDOMDifference() {
         let conceptualOperation = {"concept": detectedConcept, "operation": detectedOperation};
         console.log("Concept detected: ", conceptualOperation);
 
-        highlightTextInputElemAssociations(root /*window.frames[0].document*/);
-
+        //we do the highlight at the end
+        //highlightTextInputElemAssociations(root /*window.frames[0].document*/);
 
         // detectam atribute Foreign Keys
         let FKFields = detectForeignKeyFields(conceptualOperation.concept, allTextElements, root);
@@ -396,6 +403,8 @@ function processDOMDifference() {
         }
 
     });
+
+    highlightTextInputElemAssociations(document.body);
 
     return detectedConceptualOperations;
 }
@@ -532,6 +541,7 @@ function highlightTextInputElemAssociations(root) {
             canvas.setAttribute("class", "taskmate-canvas");
             canvas.setAttribute("id", item['textNode'].innerText+"|"+item['inputNode'].outerHTML);
             canvas.style.position = "absolute";
+            canvas.style.zIndex = "9999";
             //canvas.style.border = "1px solid cyan";
             if (item['relativePosition'] == "right&!below") {
                 canvas.style.left = textNodePosition.right +"px";
@@ -576,11 +586,29 @@ function highlightTextInputElemAssociations(root) {
                                         (inputNodePosition.bottom-inputNodePosition.top)/2);
                 ctx.stroke();
             }
-            //let ancestor = getClosestAncestorWithVerticalScroll(root, item['textNode']);
+            /* Here we add the canvas tag to DOM. The canvas object contains a green line that
+             * links the item['textNode'] tag with the item['inputNode'] tag. It's very important
+             * where we add the canvas object in the DOM structure, because the canvas should be
+             * positioned absolutely. The most obvious choice is the document.body, but the problem
+             * with this is that if item['textNode'] and item['inputNode'] are on a dialog window
+             * and this dialog window has a vertical scroll, if we scroll the dialog window, the
+             * canvas will remain fixed (because it is positioned relatively to document.body).
+             * So we find instead the closest common ancestor of item['textNode'] and item['inputNode'],
+             * and then we traverse the hierarchical DOM structure until we find the first ancestor
+             * with a vertical scroll and we add our canvas object as a child of this ancestor. We
+             * also set "position: relative" for this ancestor if its original position is 'static'
+             * (so that the absolute positioning of our canvas object is relative to this ancestor).
+             */
             let ancestor = getClosestCommonAncestor(root, item['textNode'], item['inputNode']);
+            ancestor = getClosestAncestorWithVerticalScroll(root, ancestor);
             if (ancestor != null) {
                 //ancestor.style.border = "2px solid purple";
-                ancestor.style.position = "relative";
+                let style = getComputedStyle(ancestor);
+                if ((style.position!=="absolute") && (style.position!=="relative") && (style.position!=="fixed")) {
+                    ancestor.style.position = "relative";
+                    console.log("highlightTextInputElemAssociations(): textNode=", item['textNode'],
+                        " ClosestCommonAncestor=", ancestor, " (root=", root, ")");
+                }
                 // TODO: Setarile de top si left de mai jos sunt stupide (daca nu pun +'px' in aceeasi linie nu e nici un efect)
                 let ancestorRect = computeScrollIndependentBoundingBox(ancestor);
                 canvas.style.top = parseFloat(canvas.style.top) - ancestorRect.top + 'px';
@@ -589,7 +617,7 @@ function highlightTextInputElemAssociations(root) {
                 console.log("ClosestAncestorWithVerticalScroll", ancestor);
             } else 
                 root.appendChild(canvas);
-            
+                 
             //console.log("canvas bounding box: ", canvas.getBoundingClientRect());
 
         }

@@ -11,6 +11,8 @@ async function pause(pauseInterval = 10000 /*ms*/) {
 
 function computeScrollIndependentBoundingBox(node) {
 	let boundingBox = {};
+    if (node==null) return boundingBox;
+
 	let rect = node.getBoundingClientRect(); 
 	boundingBox.top = rect.top + window.scrollY;
 	boundingBox.left = rect.left + window.scrollX;
@@ -42,6 +44,9 @@ function isElementVisible(item) {
 }
 
 function getClosestAncestorWithVerticalScroll(root, node) {
+    if ((node == null) || (node.isEqualNode(root))) {
+        return root;
+    }
     let ancestor = node.parentNode;
     while (ancestor) { 
             if ((ancestor.scrollHeight > ancestor.clientHeight) && 
@@ -50,10 +55,24 @@ function getClosestAncestorWithVerticalScroll(root, node) {
                  break; 
             } else ancestor = ancestor.parentNode;
             if (ancestor.isEqualNode(root)) { ancestor = null; break; }
-        };
-    console.log("ancestor.scrollHeight=", ancestor.scrollHeight, " ancestor.clientHeight=", 
-        ancestor.clientHeight, " ancestor=", ancestor);
+    };
+    if (ancestor!=null) {
+        console.log("ancestor.scrollHeight=", ancestor.scrollHeight, " ancestor.clientHeight=", 
+            ancestor.clientHeight, " ancestor=", ancestor);
+    }
     return ancestor;
+}
+
+function getClosestScrollableParent(root, node) {
+    if ((node == null) || (node.isEqualNode(root))) {
+        return root;
+    }
+
+    if ((node.clientHeight>0) && (node.scrollHeight > node.clientHeight)) {
+        return node;
+    } else {
+        return getScrollParent(node.parentNode);
+    }
 }
 
 function getClosestCommonAncestor(root, node1, node2) {
@@ -307,9 +326,7 @@ function computeDifferenceDOM() {
             let diffAncestor = getClosestCommonAncestorForArray(roots[i].body, partialDiff);
             let diffPanels = clusterizeNodesIntoPanels(roots[i].body, partialDiff);
             diffDOM.push({"root": roots[i].body, "ancestor": diffAncestor, "diffPanels": diffPanels });
-        } else {
-            diffDOM.push({"root": roots[i].body, "ancestor" : null, "diffPanels": [] });
-        }
+        } 
     }    
 
     return diffDOM;
@@ -328,9 +345,11 @@ function computeDiffDOMwithinRoot(root) {
     let taskmateID = 1; // for now, we don't need taskmateIDs to be uniq (but we may need this in the future)
     var loop = function(main) {
         do {
-            if ((main.nodeType == 1) && (!main.classList.contains("taskmate-canvas"))) {    
+            if ((main.nodeType == 1) && (!main.classList.contains("taskmate-canvas")) && 
+                (main.innerText?.trim().length >0)) {    
                 // ignore text nodes (nodeType != 1) and our own canvas tags (class = "taskmate-canvas")
-                
+                // ignore nodes that don't contain any text (like page overlays for dialog windows) !
+
                 //console.log("setting custom attribute for", main);
                 let attr = main.getAttribute("taskmateID");
                 if ((attr==null) || (attr=="")) {
@@ -393,4 +412,46 @@ function addTaskmateAttribute(root) {
         taskmateID++;
     })*/
 
+}
+
+function trimNonAlphanumeric(str) {
+    let skiped = "[]{}*,;:'-=<>/|";
+    str = str.trim();
+    let left = 0;
+    let right = str.length - 1;
+    let result = "";
+    while (left < str.length-1) {
+        if (skiped.includes(str[left])) {
+            left++;
+        } else {
+            break;
+        }
+    }
+    while (right > 0) {
+        if (skiped.includes(str[right])) {
+            right--;
+        } else {
+            break;
+        }
+    }
+    result = str.substring(left, right+1);
+    return result;
+}
+
+function highlightTaskmateTaggedNodes() {
+    let roots = getFramesRoots();
+    for(let i=0; i<roots.length; i++) {
+        roots[i].body.querySelectorAll(":not([taskmateID], .taskmate-canvas)").forEach(function(elem) {
+            elem.style.border = "2px dotted Lime";    
+        });
+    }    
+}
+
+function unHighlightTaskmateTaggedNodes() {
+    let roots = getFramesRoots();
+    for(let i=0; i<roots.length; i++) {
+        roots[i].body.querySelectorAll(":not([taskmateID], .taskmate-canvas)").forEach(function(elem) {
+            elem.style.border = "";    
+        });
+    }    
 }
