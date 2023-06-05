@@ -1,4 +1,4 @@
-// We consider the firt property of a concept to be a primary key
+// We consider the first property of a concept to be a primary key
 
 var DataModel = {
 /*		"Account" : ["Account Name", "Phone", "Fax", "Website", "Parent Account", "Ticker Symbol",
