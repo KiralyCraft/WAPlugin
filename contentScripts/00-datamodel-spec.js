@@ -1,7 +1,8 @@
 // We consider the first property of a concept to be a primary key
 
 var DataModel = {
-/*		"Account" : ["Account Name", "Phone", "Fax", "Website", "Parent Account", "Ticker Symbol",
+		/* For Ms Dynamics 2016 CRM */
+		"Account" : ["Account Name", "Phone", "Fax", "Website", "Parent Account", "Ticker Symbol",
 					 "Address", "Primary Contact", "Description", "Industry", "SIC Code", "Ownership"],
 		"Contact" : ["Full Name", "Job Title", "Account Name", "Email", "Business Phone", "Mobile Phone",
 					"Fax", "Preferred Method of Contact", "Address", "Gender", "Marital Status",
@@ -17,7 +18,6 @@ var DataModel = {
 				 "Proposed solution", "Sales Team", "Competitors", "Price List", "Revenue", "Detail Amount",
 				 "(-) Discount (%)", "(-) Discount", "Pre-Freight Amount", "(+) Freight Amount", "(+) Total Tax",
 				 "Total amount", "Quotes"],
-*/
 
 		/* For Ms Dynamics 365 CRM 2019 */
 		"Customer" : ["No.", "Name", "IC Partner Code", "Balance ($)", "Balance Due ($)", "Credit Limit ($)", 
@@ -37,9 +37,8 @@ var DataModel = {
 					"Payment Terms Code", "Payment Method Code", "Location Code"],
 		
 
-
 		/* For Atlassian Jira */
-/*		"Issue" : ["Project", "Issue Type", "Summary", "Acceptance Criteria", "Description", "Component/s",
+		"Issue" : ["Project", "Issue Type", "Summary", "Acceptance Criteria", "Description", "Component/s",
 					"Fix Version/s", "Priority", "Labels", "Linked Issues", "Issue", "Assignee", "Epic Link",
 					"Sprint", "Attachment", "Attachment Links", "Parent Link", "Resolution", "Comment"],
 		// An alias of Jira Issue 
@@ -48,7 +47,7 @@ var DataModel = {
 					"Assignee", "Reporter", "Votes", "Watchers", "Created", "Updated"],
 		"Sprint" : ["Sprint Name", "Goal", "Duration", "Start Date", "End Date"],
 		"Log" : ["Time Spent", "Date Started", "Remaining Estimate", "Work Description"],
-*/
+
 		"PrimaryKeys" : [ {Concept : "Account", PrimaryKey : "Account Name"}], 
 		"ForeignKeys" : [ { ForeignKey : "Company", ForeignConcept : "Contact", PrimaryKey : "Account Name", PrimaryConcept : "Account" } 
 						]

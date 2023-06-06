@@ -170,12 +170,28 @@ function UNSerializeDOMPath(path) {
     // the root is detected automatically, by checking all possible roots (document or frameElement 
     // of all existing frames)
 
-    let elems = path.split("|");
+    let elems = path.split("/");
     let reversePath = "";
     for(let i=elems.length-1; i>=0; i--) {
         console.log(elems[i]);
         if (elems[i].trim() != "") {
-            reversePath += elems[i].trim() + " > ";
+            /* Check if the selector contains both "#" and "." (meaning it's an ID attribute that
+             * contains '.'), e.g. "LI#account.New". In this case we must generate the selector:
+             *      "LI[id='account.New']"
+             */
+            if (elems[i].trim().match(/^[a-zA-Z]+#.+\./)) {
+                let tokens = elems[i].trim().split("#");
+                reversePath += tokens[0] + "[id='" + tokens[1];
+                // normally, there should only be 2 tokens, i.e. the tag name and the ID attribute, but just in case..
+                let j = 2;
+                while(j<tokens.length) {
+                   reversePath += "#" + tokens[j];
+                   j++; 
+                }
+                reversePath += "'] > ";
+            } else {
+                reversePath += elems[i].trim() + " > ";
+            }
         }
     };
     reversePath = reversePath.substring(0, reversePath.length-3);

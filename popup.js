@@ -211,7 +211,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
 			})
 		}
 		
-		chrome.windows.create({'focused': false, 'url': 'navigation-history.html', 'type': 'popup', 
+		// TODO - we should create this window by clicking a button, not automatically. For now it is commented out.
+		/*chrome.windows.create({'focused': false, 'url': 'navigation-history.html', 'type': 'popup', 
 			'width': 600, 'height' : 600, left: 100, top: 300}, function(window) {
    				console.log('Navigation history popup created. WindowID=', window.id);
    				window.alwaysOnTop = false;
@@ -219,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
            		chrome.storage.local.set(
                		{"NavigationHistoryWindowID": NavigationHistoryWindowID},  
            		);
-   		});
+   		});*/
 	});
 });
 

@@ -15,7 +15,9 @@ function clickTrigger(target, delay=1000) {
 		//let timeoutID = window.setTimeout(function() {target.dispatchEvent(event)}, delay);
 		target.dispatchEvent(event);
 		//target.click();
-		console.log("Debug .. in clickTrigger...");
+		console.log("clickTrigger(): Debug ...");
 		resolve("");
 	});
 }
+
+

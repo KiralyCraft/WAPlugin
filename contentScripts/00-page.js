@@ -142,6 +142,12 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         console.log("Content script's state is now: ", receivedMessage.state);
         ContentScriptPluginState.state = receivedMessage.state;
 
+        // Start the automatic execution of the process
+        if (receivedMessage.state == "Automatic execution") {
+            console.log("Automatic execution started...");
+            ExecutePrimaryBlock(InsertAccount_PrimaryBlock);
+        }
+
     } else if (receivedMessage.request == "message_background_page_mapUIOperation") {
         (async () => {
             console.log("Msg. message_background_page_mapUIOperation received from background.");
