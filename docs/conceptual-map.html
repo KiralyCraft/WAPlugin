@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		html, body {
+			height: 100%;
+			width: 3000px;
+		}
+		section.mapsection {
+			width: 100%;
+			display: flex;
+			justify-content: space-around;
+			justify-content: center;
+			align-items: center;
+		}
+		div {
+			display: flex;
+			justify-content: space-around;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+		.rootnode {
+			min-width: 100px;
+			min-height: 100px;
+			background: #ed4488;
+			border: 1px solid black;
+			border-radius: 5px;
+		}
+		.webpagenode {
+			min-width: 100px;
+			min-height: 100px;
+			background: #ff88aa;
+			border: 1px solid black;
+			border-radius: 5px;
+			margin: 20px;
+		}
+		.conceptualnode {
+			min-width: 100px;
+			min-height: 100px;
+			background: #deffcc;
+			border: 1px solid black;
+			margin: 20px;
+			padding-left: 10px;
+			padding-right: 10px;
+		}
+		.genericDOMnode {
+			min-width: 100px;
+			min-height: 100px;
+			background: #ffffcc;
+			border: 1px solid black;
+			margin: 20px;
+			padding-left: 10px;
+			padding-right: 10px;
+		}
+		.clickable {
+			min-width: 100px;
+			min-height: 10px;
+			background: #aaffaa;
+			border: 1px solid black;
+			margin: 10px;
+		}
+		.separator {
+			display: block;
+			width: 100%;
+			height: 6%;
+		}
+		#links1, #links2, #links3, #links4, #links5 {
+			position: absolute;
+			/* Nu e bine daca setez aici width si height; liniile din canvas devin blurry */
+			/*width: 3000px;*/
+			/*height: 100px;*/
+			/*border: 1px solid blue;*/
+		}
+		#links1 {
+			top: 95px;
+		}
+		#links2 {
+			top: 260px;
+			/*height: 140px;*/
+		}
+		#links3 {
+			top: 470px;
+			/*height: 140px;*/
+		}
+		#links4 {
+			top: 700px;
+			/*height: 120px;*/
+		}
+	</style>
+	<script>
+		window.onload = function() {
+			/************************ links1 **************************/
+			let node = document.querySelector("#links1");
+			let ctx = node.getContext('2d');
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(1500, 0);
+			ctx.lineTo(1500, 100);
+			ctx.stroke();
+
+			/************************ links2 **************************/
+			node = document.querySelector("#links2");
+			ctx = node.getContext('2d');
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(1250, 0);
+			ctx.lineTo(1500, 140);
+			ctx.stroke();
+
+			/************************ links3 **************************/
+			node = document.querySelector("#links3");
+			ctx = node.getContext('2d');
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(1360, 0);
+			ctx.lineTo(1000, 140);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(1500, 0);
+			ctx.lineTo(2000, 140);
+			ctx.stroke();
+
+			/************************ links4 **************************/
+			node = document.querySelector("#links4");
+			ctx = node.getContext('2d');
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(530, 0);
+			ctx.lineTo(330, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(700, 0);
+			ctx.lineTo(680, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(880, 0);
+			ctx.lineTo(980, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(1060, 0);
+			ctx.lineTo(1240, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(1240, 0);
+			ctx.lineTo(1420, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(1600, 0);
+			ctx.lineTo(1680, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(1780, 0);
+			ctx.lineTo(1980, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(1950, 0);
+			ctx.lineTo(2340, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(2120, 0);
+			ctx.lineTo(2580, 120);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(2280, 0);
+			ctx.lineTo(2750, 120);
+			ctx.stroke();
+		}
+	</script>
+
+</head>
+<body>
+	<section class="mapsection">
+		<div class="rootnode">
+			<span style="font-weight: bold;">URL: http://172.30.3.49:5555/main.aspx</span>
+			<div style="flex-basis: 100%; height=0;"></div>
+			<div class="clickable">
+				<svg viewBox="0 0 100 60" width="40" height="40">
+	  				<rect width="100" height="10"></rect>
+	  				<rect y="20" width="100" height="10"></rect>
+	  				<rect y="40" width="100" height="10"></rect>
+				</svg>
+			</div>
+		</div>
+
+	</section>
+
+	<p class="separator"></p>
+	<canvas id="links1" width="3000" height="100"></canvas>
+
+	<section class="mapsection">
+		<div class="webpagenode">
+			<div class="clickable">Sales</div>
+			<div class="clickable">Service</div>
+			<div class="clickable">Marketing</div>
+			<div class="clickable">Settings</div>
+			<div class="clickable">Help center</div>
+		</div>
+
+	</section>
+
+	<p class="separator"></p>
+	<canvas id="links2" width="3000" height="140"></canvas>
+
+	<section class="mapsection">
+		<div class="webpagenode">
+			<div class="clickable">Accounts</div>
+			<div class="clickable">Contacts</div>
+			<div class="clickable">Leads</div>
+		</div>
+	</section>
+
+	<p class="separator"></p>
+	<canvas id="links3" width="3000" height="140"></canvas>
+
+	<section class="mapsection">
+		<div class="webpagenode">
+			<span>{Concept: <span style="font-style: italic;">Accounts</span>, Operation: <span style="font-style: italic;">SELECTALL</span>}</span>
+			<div style="flex-basis: 100%; height=0;"></div>
+			<div class="clickable">New</div>
+			<div class="clickable">Delete</div>
+			<div class="clickable">Update</div>
+			<div class="clickable">Activate</div>
+			<div class="clickable">Deactivate</div>
+			<div class="clickable">Email a link</div>
+		</div>
+		<div class="webpagenode">
+			<span>{Concept: <span style="font-style: italic;">Contacts</span>, Operation: <span style="font-style: italic;">SELECTALL</span>}</span>
+			<div style="flex-basis: 100%; height=0;"></div>
+			<div class="clickable">New</div>
+			<div class="clickable">Delete</div>
+			<div class="clickable">Update</div>
+			<div class="clickable">Activate</div>
+			<div class="clickable">Deactivate</div>
+			<div class="clickable">Email a link</div>
+		</div>
+	</section>
+
+	<p class="separator"></p>
+	<canvas id="links4" width="3000" height="120"></canvas>
+
+	<section class="mapsection">
+		<div class="conceptualnode">
+			<span>{Concept: <span style="font-style: italic;">Accounts</span>, Operation: <span style="font-style: italic;">INSERT</span>}</span>
+		</div>
+		<div class="conceptualnode">
+			<span>{Concept: <span style="font-style: italic;">Accounts</span>, Operation: <span style="font-style: italic;">DELETE</span>}</span>
+		</div>
+		<div class="conceptualnode">
+			<span>{Concept: <span style="font-style: italic;">Accounts</span>, Operation: <span style="font-style: italic;">UPDATE</span>}</span>
+		</div>
+		<div class="genericDOMnode">
+			<span>{Generic DOM}</span>
+		</div>
+		<div class="genericDOMnode">
+			<span>{Generic DOM}</span>
+		</div>
+
+		<div class="conceptualnode">
+			<span>{Concept: <span style="font-style: italic;">Contacts</span>, Operation: <span style="font-style: italic;">INSERT</span>}</span>
+		</div>
+		<div class="conceptualnode">
+			<span>{Concept: <span style="font-style: italic;">Contacts</span>, Operation: <span style="font-style: italic;">DELETE</span>}</span>
+		</div>
+		<div class="conceptualnode">
+			<span>{Concept: <span style="font-style: italic;">Contacts</span>, Operation: <span style="font-style: italic;">UPDATE</span>}</span>
+		</div>
+		<div class="genericDOMnode">
+			<span>{Generic DOM}</span>
+		</div>
+		<div class="genericDOMnode">
+			<span>{Generic DOM}</span>
+		</div>
+	</section>
+
+	<p class="separator"></p>
+	<canvas id="links5"></canvas>
+
+	<section class="mapsection">
+
+	</section>
+
+
+</body>
+</html>

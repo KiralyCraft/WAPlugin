@@ -1,4 +1,6 @@
 
+import Settings from './general-settings.js';
+
 /**************** Code for injecting the lazy scripts into current Document *************************/
 
 
@@ -258,7 +260,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
      * sendMessage({ response : "message_[fisier sursa]_[fisier destinatie]_[actiune/metoda]", parameters: ... } )
      */
 
-     console.log("********** DEBUG: message received:", receivedMessage);
+     console.log("Popup.js: message received:", receivedMessage);
     
     if (receivedMessage.request == "message_page_popup_UIOperationStarted") {
     	document.querySelector("#status-message").innerHTML="Processing...";
@@ -269,6 +271,8 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     	document.querySelector(".progress-allgreen").style.display = "block";
     	//document.querySelector(".progress").style.display = "none";
     } else if (receivedMessage.request =="message_page_popup_operationDetected") {
+    	//const preLeafNode = responseMessage.preLeafNode.split("|");
+        //const preLeafNode = responseMessage.preLeafNode;
     	document.querySelector("#navigationMap").innerHTML = 
                 "<p>[" + "preLeafNode" + "] -> [Concept: " + receivedMessage.concept + ", Operation: " + 
                 receivedMessage.operation + "]</p>";
@@ -303,16 +307,7 @@ document.querySelectorAll(".tabs > #tabsHeader > span").forEach(function(tabhead
 document.querySelector('#processDOMDifferenceButton').addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_processDOMDifference'}, 
-            function(responseMessage) {
-                console.log("Popup.js RESPONSE:", responseMessage);
-                if (responseMessage.response == "message_page_popup_primaryNavigationBlockDetected") {
-                    //const preLeafNode = responseMessage.preLeafNode.split("|");
-                    //const preLeafNode = responseMessage.preLeafNode;
-                    document.querySelector("#navigationMap").innerHTML = 
-                  		"<p>[" + "preLeafNode" + "] -> [Concept: " + responseMessage.concept + ", Operation: " + 
-                        responseMessage.operation + "]</p>";
-                }
-        });
+            function(response) {});
     });
 });
 
@@ -380,13 +375,112 @@ document.querySelector('#executeProcessButton').addEventListener('click', functi
 	console.log("Automatic execution started...");
 	// send message to background
 	chrome.runtime.sendMessage({request: 'message_popup_background_StateChanged', state: "Automatic execution"});
-	// send message to page
-	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+	// send message to page - codul de mai jos executa un singur bloc primar (merge)
+	/*chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_StateChanged', 
         						state: "Automatic execution"}, function(response) {});
-    });
-
-    ExecutePrimaryBlock(InsertAccount_PrimaryBlock);
+    });*/
+    // codul asta executa 2 blocuri primare in succesiune (nu merge)
+	(async () => {
+		console.log("Popup.js: Starting executing the first primary block!");
+    	//await executeProcess(JSON.parse(document.querySelector("#processDescription").value));
+    	await executeProcess(InsertAccount_PrimaryBlock);
+    	await pause(50000);
+    	console.log("Popup.js: Starting executing the second primary block!");
+    	//await executeProcess(JSON.parse(document.querySelector("#processDescription").value));
+    	await executeProcess(InsertAccount_PrimaryBlock);
+    	await pause(50000);
+    	return "SUCCESS";
+    })();
 });
 
 
+/******* Codul acesta e temporar aici si ar trebui mutat intr-un fisier separat !!!!!!! ******/
+var InsertAccount_PrimaryBlock = [ 
+	{operation:"Click", target: "IMG#homeButtonImage/ SPAN.navTabButtonImageContainer/ A#HomeTabLink/ SPAN#TabHome/ DIV#navTabGroupDiv/ DIV#navBar/ DIV#crmMasthead/ ", targetText : ""}, 
+	{concept: "", operation : "Generic DOM"}, 
+	{operation: "Click", target : "IMG/ SPAN.navActionButtonIcon/ SPAN.navActionButtonIconContainer/ A#SFA/ LI.nav-group/ SPAN.nav-layout/ SPAN.nav-groupBody/ SPAN.nav-groupContainer/ LI.nav-subgroup/ UL.nav-tabBody/ DIV#actionGroupControl/ DIV#actionGroupControl_viewport/ DIV#actionGroupControl_scrollableContainer/ DIV.mainTab-nav-scrl/ DIV.navActionGroupContainer/ DIV#crmMasthead/ ", targetText : ""}, 
+	{concept: "", operation : "Generic DOM"}, 
+	{operation: "Click", target: "SPAN.nav-rowLabel/ A#nav_accts/ LI.nav-subgroup/ SPAN.nav-section/ SPAN.nav-layout/ SPAN.nav-groupBody/ SPAN.nav-groupContainer/ LI.nav-group/ UL.nav-tabBody/ DIV#detailActionGroupControl/ DIV#detailActionGroupControl_viewport/ DIV#detailActionGroupControl_scrollableContainer/ DIV.nav-scrl/ DIV.navActionListContainer/ DIV#crmMasthead/ ", targetText: "Accounts"}, 
+	{concept : ['Account'], operation: "SELECTALL"}, 
+	{operation: "Click", target: "SPAN.ms-crm-CommandBar-Menu/ A.ms-crm-Menu-Label/ SPAN.ms-crm-CommandBar-Button.ms-crm-Menu-Label/ LI#account|NoRelationship|HomePageGrid|Mscrm.HomepageGrid.account.NewRecord/ UL.ms-crm-CommandBar-Menu/ DIV#commandContainer1/ DIV#crmRibbonManager/ DIV#crmTopBar/ ", targetText: "NEW"}, 
+	{concept: "Account", operation: "INSERT", parameters:{"Account Name":"UBBtest","Phone":"00000000000", 
+						"Fax":"00000000000","Website":"www.ubbcluj.ro","Parent Account":"", "Ticker Symbol":"a", 
+						"Address":"Str.M.Kogalniceanu,Cluj", "Description":"University", "Industry":"Academic","SICCode":"00000","Ownership":""}},
+	//{operation:"Post-Operation", target: "SPAN.ms-crm-CommandBar-Menu/ A.ms-crm-Menu-Label/ SPAN.ms-crm-CommandBar-Button.ms-crm-Menu-Label/ LI#account|NoRelationship|Form|Mscrm.Form.account.Save/ UL.ms-crm-CommandBar-Menu/ DIV#commandContainer3/DIV#crmRibbonManager/ DIV#crmTopBar/" , targetText: "SAVE"}  
+	//{operation:"Post-Operation", target: "A.ms-crm-Menu-Label/ SPAN.ms-crm-CommandBar-Button.ms-crm-Menu-Label/ LI#account|NoRelationship|Form|Mscrm.Form.account.Save/ UL.ms-crm-CommandBar-Menu/ DIV#commandContainer3/DIV#crmRibbonManager/ DIV#crmTopBar/" , targetText: "SAVE"}  
+//	{operation:"Post-Operation", target: "A.ms-crm-Menu-Label/ SPAN.ms-crm-CommandBar-Button.ms-crm-Menu-Label/ LI#account|NoRelationship|Form|Mscrm.Form.account.SaveAndClose/ UL.ms-crm-CommandBar-Menu/ DIV#commandContainer3/DIV#crmRibbonManager/ DIV#crmTopBar/" , targetText: "SAVE & CLOSE"}  
+];
+
+var InsertAccount_PrimaryBlockNULL = [];
+
+// code care este in 01-utils.js
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+                
+async function pause(pauseInterval = 10000 /*ms*/) {
+    console.log("Sleeping ...");
+    await sleep(pauseInterval); 
+    console.log("End sleep.");
+}
+
+
+async function executeProcess(process) {
+
+/*	// send message to page
+	await chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_ExecuteAppURLInitialization'}, 
+        	function(response) {});
+    });
+    await pause(20000);
+
+	// send message to page
+	await chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_ExecutePrimaryBlock',
+    		primaryBlock: process}, function(response) {});
+    });
+    await pause(20000);
+*/
+	// send message to page
+	console.log("Popup.js::executeProcess() Settings.targetAppURL=", Settings.targetAppURL);
+	let activeTab = await chrome.tabs.query({active: true, currentWindow: true});
+	console.log("Popup.js::executeProcess() activeTab=", activeTab);
+    const response = await chrome.tabs.sendMessage(activeTab[0].id, {request: 'message_popup_page_ExecuteAppURLInitialization'});
+    
+    console.log("Popup.js::executeProcess() sleeping after reinitialization of the startup URL in browser");
+    await pause(10000);
+    // after document reload in the browser, we must manually reinject all the content scripts in the
+    // context of the new document loaded in the browser; otherwise, all content scripts functionality
+    // of the plugin will stop
+    await injectContentScripts(activeTab[0].id);
+    await pause(10000);
+
+	// send message to page
+	// TODO: Trebuie sa ma prind de ce nu face wait mai jos !!!!
+    activeTab = await chrome.tabs.query({active: true, currentWindow: true});
+    const response1 = await chrome.tabs.sendMessage(activeTab[0].id, {request: 'message_popup_page_ExecutePrimaryBlock',
+    		primaryBlock: process});
+    console.log("Popup.js::executeProcess() response1=" + response1);
+
+    console.log("Popup.js::executeProcess() sleeping after the Primary block execution completed");
+    await pause(10000);
+
+}
+
+async function injectContentScripts(tabId) {
+	console.log("Popup.js: injecting content script in tab.");
+    let contentScripts = chrome.runtime.getManifest().lazyContentScripts;
+    for (let scriptIndex in contentScripts)
+    {
+        let scriptName = contentScripts[scriptIndex];
+        //Ghetto workaround for deep copying this thing
+        (function (scriptNameDeep)
+            {
+                chrome.scripting.executeScript({
+                    target: {tabId: tabId, allFrames: false},
+                    files: [ scriptNameDeep ]
+                    });
+                })(scriptName);
+            }
+}

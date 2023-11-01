@@ -20,7 +20,7 @@ var DataModel = {
 				 "Total amount", "Quotes"],
 
 		/* For Ms Dynamics 365 CRM 2019 */
-		"Customer" : ["No.", "Name", "IC Partner Code", "Balance ($)", "Balance Due ($)", "Credit Limit ($)", 
+/*		"Customer" : ["No.", "Name", "IC Partner Code", "Balance ($)", "Balance Due ($)", "Credit Limit ($)", 
 					  "Blocked", "Privacy Blocked", "Salesperson Code", "Responsability center", "Service zone code",
 					  "Document sending profile", "Total Sales", "Costs ($)", "Profit ($)", "Profit %", 
 					  "Last Date Modified", "Disable search by name", "Address", "Address 2", "Country/Region Code", "City",
@@ -35,7 +35,7 @@ var DataModel = {
 					"Purchaser code", "Responsability Center", "Disable search by name", "Address", "Address 2", 
 					"Country/Region Code", "City", "Email", "Home Page", "Contact", "Tax Registration No.", 
 					"Payment Terms Code", "Payment Method Code", "Location Code"],
-		
+*/		
 
 		/* For Atlassian Jira */
 		"Issue" : ["Project", "Issue Type", "Summary", "Acceptance Criteria", "Description", "Component/s",

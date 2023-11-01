@@ -1,3 +1,5 @@
+var CONCEPT_LABEL_DETECTION_THRESHOLD = 0.75; 
+
 
 function updateVisibleDOM(root, visibleNodes, invisibleNodes, newVisibleNodes, newInvisibleNodes) {
     function findNodeInArray(array, node) {
@@ -153,9 +155,9 @@ function detectConcept(textElements) {
             console.log("detectConcept(): ", property, attributeOccurences);
         };
         console.log("detectConcept(): attributeOccurences=", attributeOccurences, " noOfProperties=", DataModel[concept].length);
-        // The text labels should match at least 90% of the attributes of a concept from the DataModel 
+        // The text labels should match at least 75% of the attributes of a concept from the DataModel 
         // in order to conclude that a concept was found.
-        if (attributeOccurences >= DataModel[concept].length * 0.9) {
+        if (attributeOccurences >= DataModel[concept].length * CONCEPT_LABEL_DETECTION_THRESHOLD) {
             detectedConcept = concept;          
             break;
         } else {
@@ -215,9 +217,9 @@ function detectOperation(textElementsWithInputs, detectedConcept) {
     console.log("detectOperation(): attributeOccurences=", attributeOccurences, " noOfProperties=", 
                 DataModel[detectedConcept].length);
     
-    // The text labels should match at least 90% of the attributes of a concept from the DataModel 
+    // The text labels should match at least 0.75% of the attributes of a concept from the DataModel 
     // in order to conclude that a concept was found.
-    if (attributeOccurences >= DataModel[detectedConcept].length * 0.9) {
+    if (attributeOccurences >= DataModel[detectedConcept].length * CONCEPT_LABEL_DETECTION_THRESHOLD) {
         if (inputNodesCount==0) {
             operation = "SELECT";
         } else if (nonemptyInputNodesCount > 1) { // it can also be ">0"

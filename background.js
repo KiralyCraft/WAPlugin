@@ -1,6 +1,8 @@
 
 import Settings from './general-settings.js';
 
+console.log("background.js: The general Settings are: ", Settings);
+
 var BackgroundScriptPluginState = {
     state : "Debug" /* "Debug", "Guided browsing", "Automatic browsing", "Automatic execution" */
 
@@ -28,7 +30,7 @@ chrome.runtime.onMessage.addListener(async function(receivedMessage, sender, sen
     if (receivedMessage.request == "message_popup_background_StateChanged") {
         console.log("Background script's state is now: ", receivedMessage.state);
         BackgroundScriptPluginState.state = receivedMessage.state;
-
+        
     } else if (receivedMessage.request == "message_page_background_clickEvent") {
         if (receivedMessage.operation=="Click") {
             NavigationHistory.push({operation : "Click", target : receivedMessage.target, 
@@ -162,8 +164,8 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
     if (changeInfo.status === 'complete') {
         console.log("tabs.onUpdated event.. tabId=", tabId, " changeInfo=", changeInfo, " tab=", tab);
         let activeTab = await getTargetTab();
-        console.log("activeTab:", activeTab, activeTab[0].id);
-        if (activeTabURL != activeTab[0].url) {
+        console.log("activeTab:", activeTab /*, activeTab[0].id*/);
+        if ((activeTab!=null) && (activeTabURL != activeTab[0].url)) {
             changeInfo.url = activeTab[0].url;
             activeTabURL = activeTab[0].url;
         }

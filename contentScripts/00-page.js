@@ -143,6 +143,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         ContentScriptPluginState.state = receivedMessage.state;
 
         // Start the automatic execution of the process
+        // codul acesta se declanseaza acum de un mesaj separat, "message_popup_page_ExecutePrimaryBlock"
         if (receivedMessage.state == "Automatic execution") {
             console.log("Automatic execution started...");
             ExecutePrimaryBlock(InsertAccount_PrimaryBlock);
@@ -154,7 +155,9 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
             // wait for the UI operation to complete  
             await pause(10000);
 
-            mapUIOperation();
+            let detectedConceptOperation = await mapUIOperation();
+
+            // TODO: trebuie sa trimit conceptul si operatia detectata la background si la popup
         })();
 
     } else if (receivedMessage.request == "message_background_page_updatePhantomDOM") {
@@ -175,29 +178,36 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 
         // TODO: remove this - este doar de test si decomentam linia 
         // detectedConceptOperation = processDOMDifference() de mai jos !!!!
-        mapUIOperation();
-        let detectedConceptOperation = null;
+        (async () => {
+            const detectedConceptOperation = await mapUIOperation();
 
-        //let detectedConceptOperation = processDOMDifference();
-        var node = null;
-/*        chrome.storage.local.get(["ClickedElementID"], function(item) {
-            console.log("Data saved in chrome.storage.local:",item);
-            node = item;
-            console.log("node:", node);
-            // TODO: a se muta in afara acestui block cu async
-            //sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
-            //        preLeafNode: node, concept : detectedConceptOperation.concept, 
-            //        operation: detectedConceptOperation.operation});
-        });*/
-        console.log("****node:", node);
-        console.log("detectedConceptOperation: ", detectedConceptOperation);
-        console.log("Sending response message to popup: message_page_popup_primaryNavigationBlockDetected:",
-            {response: "message_page_popup_primaryNavigationBlockDetected",
-            preLeafNode: node, concept : detectedConceptOperation?.concept, 
-            operation: detectedConceptOperation?.operation});
-        sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
-            preLeafNode: node, concept : detectedConceptOperation?.concept, 
-            operation: detectedConceptOperation?.operation});
+            //let detectedConceptOperation = processDOMDifference();
+            var node = null;
+            /* chrome.storage.local.get(["ClickedElementID"], function(item) {
+                console.log("Data saved in chrome.storage.local:",item);
+                node = item;
+                console.log("node:", node);
+                // TODO: a se muta in afara acestui block cu async
+                //sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
+                //        preLeafNode: node, concept : detectedConceptOperation.concept, 
+                //        operation: detectedConceptOperation.operation});
+            });*/
+     
+            console.log("****node:", node);
+            // sending message to popup.js
+            chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
+                    preLeafNode: node, operation : detectedConceptOperation?.operation, 
+                    concept : detectedConceptOperation?.concept});
+            // sending message to background.js
+            console.log("sending message_page_background_operationDetected to Background: ", detectedConceptOperation);
+            chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                    operation : detectedConceptOperation.operation, 
+                    concept : detectedConceptOperation.concept});
+     
+            // announce popup.js that the UI operation was completed
+            chrome.runtime.sendMessage({request: "message_page_popup_UIOperationCompleted"});
+
+        })();
     } else if (receivedMessage.request == "message_popup_page_detectTables") {
         if (receivedMessage.parameters.algorithm == "standard")
         {
@@ -215,6 +225,27 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
         //Do not handle
     } else if (receivedMessage.action == "action_popup_injectors_probe_reply") {
         //Avoid replying to this, because the hotProbeResponder will.
+    } else if (receivedMessage.request == "message_popup_page_ExecuteAppURLInitialization") {
+        console.log("reinitialize the startup URL of the target app in the browser");
+        //(async () => {
+            // reinitialize the startup URL of the target app in the browser
+            //window.location.assign("http://172.30.3.49:5555/CRMEndava3/");
+            window.location.replace("http://172.30.3.49:5555/CRMEndava3/main.aspx");
+            //window.location.reload();
+            //window.location.href = window.location.href + "?TaskmateTime=" + (new Date()).getTime();
+            
+            // There can be no other instruction after window.location.replace() or reload() or assign()
+            // as a new document is loaded in the browser tab and the 00-page.js is not loaded in the 
+            // new context anymore!
+        //})();
+    } else if (receivedMessage.request == "message_popup_page_ExecutePrimaryBlock") {
+        (async () => {
+            console.log("Automatic execution started...");
+            //ExecutePrimaryBlock(receivedMessage.primaryBlock);
+            const response = await ExecutePrimaryBlock(InsertAccount_PrimaryBlock); // deocamdata doar de test
+            sendResponse({response: "message_page_popup_ExecutePrimaryBlock",
+                result : response});
+        })();    
     }
 
 
@@ -242,15 +273,6 @@ async function mapUIOperation() {
         }
     }
     if (conceptualOperation != null) {
-        // sending message to popup.js
-        chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
-                operation : conceptualOperation.operation, 
-                concept : conceptualOperation.concept});
-        // sending message to background.js
-        console.log("sending message_page_background_operationDetected to Background");
-        chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
-                operation : conceptualOperation.operation, 
-                concept : conceptualOperation.concept});
         DOMState.currentDOM.operation = conceptualOperation.operation;
         DOMState.currentDOM.concept = conceptualOperation.concept;
         await pause(5000);
@@ -265,15 +287,8 @@ async function mapUIOperation() {
         // in ordinea in care apar ele in capul de tabel din paginile web ale aplicatiei
         let tableConcepts = detectConceptInTables(tables);
         if ((tables != null) && (tables.length>0)) {
-            // sending message to popup.js
-            chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
-                    operation : "SELECTALL", 
-                    concept : tableConcepts});
-            // sending message to background.js
-            console.log("sending message_page_background_operationDetected to Background");
-            chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
-                    operation : "SELECTALL", 
-                    concept : tableConcepts});
+            conceptualOperation = {concept: tableConcepts, operation: "SELECTALL"};
+
             DOMState.currentDOM.operation = "SELECTALL";
             DOMState.currentDOM.concept = tableConcepts;
             await pause(5000);
@@ -287,21 +302,12 @@ async function mapUIOperation() {
                 undoHighlightRowClusters(rowclusterRoots);
             }
         } else {
-            // sending message to popup.js
-            chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
-                    operation : "Generic DOM", 
-                    concept : ""});
-            // sending message to background.js
-            console.log("sending message_page_background_operationDetected to Background");
-            chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
-                    operation : "Generic DOM", 
-                    concept : ""});
+            conceptualOperation = {concept: "", operation: "Generic DOM"};
+
             DOMState.currentDOM.operation = "Generic DOM";
             DOMState.currentDOM.concept = "";
         }
     }
-    // announce popup.js that the UI operation was completed
-    chrome.runtime.sendMessage({request: "message_page_popup_UIOperationCompleted"});
 
     // add custom taskmate attribute to new tags
     getFramesRoots().forEach(function(root) {
@@ -313,6 +319,7 @@ async function mapUIOperation() {
     /*let clickableElements = getAllClickableElements();
     console.log('clickableElements: ', clickableElements);*/
 
+    return conceptualOperation;
 }
 
 function saveDOMDifftoLocalStorage() {
