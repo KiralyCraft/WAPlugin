@@ -7,7 +7,7 @@
     "256": "icon_256.png"
   },
   "author": "Adrian Sterca, Alex Kiraly, Darius Bufnea",
-  "homepage_url": "https://www.scs.ubbcluj.ro/plugin",
+  "homepage_url": "https://www.scs.ubbcluj.ro/WAPlugin",
 
   "action": {
     "default_icon": "icon_256.png",
@@ -38,6 +38,7 @@
       "contentScripts/00-page.js",
       "contentScripts/01-conceptDetect-SELECT_ALL.js",
       "contentScripts/01-inputDetector.js",
+      "contentScripts/01-primaryBlocks.js",
       "contentScripts/01-eventTrigger.js",
       "contentScripts/01-table-detector.js",
       "contentScripts/01-crudoperation-detector.js",

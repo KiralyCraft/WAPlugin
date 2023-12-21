@@ -3,7 +3,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
                 
-async function pause(pauseInterval = 10000 /*ms*/) {
+async function pause(pauseInterval = 2000 /*ms*/) {
     console.log("Sleeping ...");
     await sleep(pauseInterval); 
     console.log("End sleep.");

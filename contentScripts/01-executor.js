@@ -1,5 +1,7 @@
 
-var InsertAccount_PrimaryBlock = [ 
+//import {RecordedPrimaryBlocks} from './01-primaryBlocks.js';
+
+let InsertAccount_PrimaryBlock = [ 
 	{operation:"Click", target: "IMG#homeButtonImage/ SPAN.navTabButtonImageContainer/ A#HomeTabLink/ SPAN#TabHome/ DIV#navTabGroupDiv/ DIV#navBar/ DIV#crmMasthead/ ", targetText : ""}, 
 	{concept: "", operation : "Generic DOM"}, 
 	{operation: "Click", target : "IMG/ SPAN.navActionButtonIcon/ SPAN.navActionButtonIconContainer/ A#SFA/ LI.nav-group/ SPAN.nav-layout/ SPAN.nav-groupBody/ SPAN.nav-groupContainer/ LI.nav-subgroup/ UL.nav-tabBody/ DIV#actionGroupControl/ DIV#actionGroupControl_viewport/ DIV#actionGroupControl_scrollableContainer/ DIV.mainTab-nav-scrl/ DIV.navActionGroupContainer/ DIV#crmMasthead/ ", targetText : ""}, 
@@ -25,12 +27,24 @@ var InsertAccount_PrimaryBlock = [
 ];*/
  
 
+/* Example of a complex process made from several primary blocks that is given to execute by the
+ * user in the "Automatic execution" tab of the Popup.
+ */
+let ComplexProcessExample = [
+	// an InsertAccount_PrimaryBlock
+	{concept: "Account", operation: "INSERT", parameters:{"Account Name":"UBBtest","Phone":"00000000000", 
+   			  "Fax":"00000000000","Website":"www.ubbcluj.ro","Parent Account":"", "Ticker Symbol":"a", 
+			  "Address":"Str.M.Kogalniceanu,Cluj", "Description":"University", "Industry":"Academic","SICCode":"00000","Ownership":""}},
+	// an UpdateAccount_PrimaryBlock of the Account Name "UBBtest" ("Account Name" is the key of the entity)
+	{concept: "Account", operation: "UPDATE", parameters:{"Account Name":"UBBtest","Phone":"00000000000", 
+   			  "Fax":"00000000000","Website":"www.ubbcluj.ro","Parent Account":"", "Ticker Symbol":"a", 
+			  "Address":"Str.M.Kogalniceanu,Cluj", "Description":"University", "Industry":"Academic","SICCode":"00000","Ownership":""}},
+	// an SelectAllAccount_PrimaryBlock
+	{concept: "Account", operation: "SELECTALL"}
+];
 
 
 async function ExecutePrimaryBlock(PrimaryBlock) {
-	//window.location.assign("http://172.30.3.49:5555/CRMEndava3/");
-	//await pause();
-
 	for(let i=0; i<PrimaryBlock.length; i++) {
 		let CurrentStep = PrimaryBlock[i];
 		if ((CurrentStep.operation == "Click") && (CurrentStep.target != "")) {
@@ -39,7 +53,7 @@ async function ExecutePrimaryBlock(PrimaryBlock) {
 			console.log("ExecutePrimaryBlock(): target element is: ", target);
 			await clickTrigger(target, 1000);
     		// wait for the click event to be handled
-    		await pause();
+    		await pause(5000); // for fast runs we can set a pause of only 1 seconds
 		} else if (CurrentStep.operation != "Post-Operation") {
 			console.log("ExecutePrimaryBlock(): current step: ", CurrentStep);
 			// map the currently loaded DOM to a conceptual operation in the Database

@@ -1,5 +1,7 @@
 
-import Settings from './general-settings.js';
+import {Settings} from './general-settings.js';
+import {pause, probeContentScripts, injectContentScripts} from './background-utils.js';
+
 
 console.log("background.js: The general Settings are: ", Settings);
 
@@ -20,6 +22,8 @@ console.log("Background.js starts ...");
 
 
 var NavigationHistory = [];
+var PrimaryBlockRecording = [];
+var finalizationStep = 0;
 
 chrome.runtime.onMessage.addListener(async function(receivedMessage, sender, sendResponse) {
     //console.log("Message received:", receivedMessage);
@@ -30,30 +34,61 @@ chrome.runtime.onMessage.addListener(async function(receivedMessage, sender, sen
     if (receivedMessage.request == "message_popup_background_StateChanged") {
         console.log("Background script's state is now: ", receivedMessage.state);
         BackgroundScriptPluginState.state = receivedMessage.state;
-        
+
+        if (receivedMessage.state == "Guided browsing") {
+            // we start recording a primary block
+            NavigationHistory = [];
+            PrimaryBlockRecording = [];            
+        }
+    } else if (receivedMessage.request == "message_popup_background_FinalizeStepState") {
+        finalizationStep = receivedMessage.state;
+
     } else if (receivedMessage.request == "message_page_background_clickEvent") {
         if (receivedMessage.operation=="Click") {
             NavigationHistory.push({operation : "Click", target : receivedMessage.target, 
                                     targetText: receivedMessage.targetText});
+            let elem = {operation : "Click", target : receivedMessage.target, 
+                        targetText: receivedMessage.targetText};
+            if ((PrimaryBlockRecording.length > 0) &&
+                (PrimaryBlockRecording[PrimaryBlockRecording.length-1].operation == "SELECTALL") &&
+                (PrimaryBlockRecording[PrimaryBlockRecording.length-1].concept != null)) {
+                    elem.targetType = "generic"; // we clicked an an entity in a table of entities
+                                                 // we don't store a specific link for that entity, 
+                                                 // but a generic link for all entities in this table
+            }
+            PrimaryBlockRecording.push(elem);
             console.log("Sending response to message_page_background_clickEvent msg..");
             // sendResponse it's not OK here since the content script does not awaits for the response
             // in the same code that sends the original message :
             // sendResponse({response: "message_background_page_clickEventRegistered",
             //            result : "Click event registered."});
+            
+            // If a new document was loaded in the browser tab as a consequence of the click event,
+            // we must first inject the content scripts in the context of the new document loaded in the tab
+            await probeContentScripts();
+            await pause(2000); // this sleep is important because otherwise the content scripts are not completely
+                               // loaded and page.js can not respond to the next message, message_background_page_mapUIOperation,
+                               // from us
+
             let activeTab = await getTargetTab();
             chrome.tabs.sendMessage(activeTab[0].id, { request: "message_background_page_mapUIOperation"});
         }
     } else if (receivedMessage.request == "message_page_background_operationDetected") {
         NavigationHistory.push({operation : receivedMessage.operation, 
                                 concept : receivedMessage.concept});
-    } else if (receivedMessage.request =="message_navigationhistory_background_getNavigationHistory") {
+        PrimaryBlockRecording.push({operation : receivedMessage.operation, 
+                                concept : receivedMessage.concept});
+    } else if (receivedMessage.request == "message_navigationhistory_background_getNavigationHistory") {
         sendResponse(NavigationHistory);
+    } else if (receivedMessage.request == "message_popup_background_getPrimaryBlockRecording") {
+        sendResponse(PrimaryBlockRecording);
     }
 
     for(let i=0; i<NavigationHistory.length; i++) {
         console.log("Navigation step ->", NavigationHistory[i]);
     }
     console.log("--- NavigationHistory object:", NavigationHistory);
+    console.log("--- PrimaryBlockRecording object:", PrimaryBlockRecording);
 
 });
 
@@ -171,29 +206,9 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
         }
         if (changeInfo.url) {
             console.log(`Tab: ${tabId} URL changed to ${changeInfo.url}`);
-            //console.log("Background.js: sending message to content.js.");
-            //chrome.tabs.sendMessage(activeTab[0].id, { action: "getDOM Test2"}, function(response) {
-            //    console.log("received response from content script:", response);
-            //});
             console.log("Background.js: injecting content script in tab.");
-            /*chrome.scripting.executeScript({
-                target: {tabId: tabId, allFrames: false},
-                files: ['contentScripts/00-datamodel-spec.js','contentScripts/00-page.js']
-            });*/
-            let contentScripts = chrome.runtime.getManifest().lazyContentScripts;
-            for (let scriptIndex in contentScripts)
-            {
-                let scriptName = contentScripts[scriptIndex];
-                //Ghetto workaround for deep copying this thing
-                (function (scriptNameDeep)
-                {
-                    chrome.scripting.executeScript({
-                        target: {tabId: tabId, allFrames: false},
-                        files: [ scriptNameDeep ]
-                    });
-                })(scriptName);
-            }
-
+            // we inject the lazy content scripts in the tab context if they are not already loaded
+            await probeContentScripts();
         }
     }
 });

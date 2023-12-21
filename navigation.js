@@ -122,7 +122,7 @@ window.onload = function() {
 		chrome.runtime.sendMessage({request: "message_navigationhistory_background_getNavigationHistory"},
 			function(response) {
 				console.log("navHistory:", response);
-				//document.querySelector("#nav").innerHTML=response;
+				document.querySelector("#nav").innerHTML = "";
 				let navDiv = null;
 				response.forEach(function(navigationStep) {
 					switch(navigationStep.operation) {
@@ -147,6 +147,15 @@ window.onload = function() {
 						document.querySelector("#nav").appendChild(drawArrow());
 					}
 				})
+			}
+		);
+	});
+
+	document.querySelector("#showJSONBtn").addEventListener('click', function(event) {
+		chrome.runtime.sendMessage({request: "message_navigationhistory_background_getNavigationHistory"},
+			function(response) {
+				console.log("navHistory:", response);
+				document.querySelector("#nav").innerHTML=JSON.stringify(response);
 			}
 		);
 	});

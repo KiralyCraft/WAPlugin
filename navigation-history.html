@@ -2,7 +2,7 @@
 <html>
 <head>
 	<style>
-		#nav {
+		#nav, #navjson {
 			border: 1px solid lightblue;
 			margin-left: auto;
 			margin-right: auto;
@@ -13,13 +13,13 @@
 			margin-left:  auto;
 			margin-right:  auto;
 		}
-		#cmd {
+		.cmd {
 			margin-left:  auto;
 			margin-right:  auto;
 			padding:  10px;
 			width: 20%;
 		}
-		#showBtn {
+		#showBtn, #showJSONBtn {
 			border: 1px solid lightblue;
 			border-radius: 4px;
 		}
@@ -60,7 +60,9 @@
 	<script src="navigation.js"></script>
 </head>
 <body>
-	<div id="cmd"><button id="showBtn">Show navigation</button></div><br/>
+	<div class="cmd"><button id="showBtn">Show navigation</button></div><br/>
+	<div class="cmd"><button id="showJSONBtn">Show primary block (JSON)</button></div><br/>
 	<div id="nav"></div>
+	<!--<div id="navjson"></div>-->
 </body>
 </html>

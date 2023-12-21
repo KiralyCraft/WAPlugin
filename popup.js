@@ -1,5 +1,8 @@
 
-import Settings from './general-settings.js';
+import {Settings} from './general-settings.js';
+import {probeContentScripts, injectContentScripts} from './background-utils.js';
+import {RecordedPrimaryBlocks} from "./contentScripts/01-primaryBlocks.js";
+
 
 /**************** Code for injecting the lazy scripts into current Document *************************/
 
@@ -36,7 +39,7 @@ function buildUIEntry(theType,theButton,theAnchor)
 	for (var theIterator in theArray)
 	{
 		var theTypeElement = document.createElement('td');
-		theArrayElement = theArray[theIterator];
+		let theArrayElement = theArray[theIterator];
 		
 		if (typeof(theArrayElement) === 'string')
 		{
@@ -99,52 +102,6 @@ function handleContentResponse(responseAction, responseData)
 }
 
 /*
- *	This method checks if the current tab responds to any messages sent from the plugin, since they are not loaded by a content-script.
- * 	It calls the callback with a boolean argument, depending on whether the injectors were loaded when the probe was called.
- */
-function probeInjectors(callbackSuccess)
-{
-	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-		chrome.tabs.sendMessage(tabs[0].id, {action: "action_popup_injectors_probe"}, function(theResponse) 
-		{
-			var lastError = chrome.runtime.lastError;
-			
-			//This may break in Chrome updates, keep an eye on it
-			if (lastError && lastError.message.indexOf("Receiving end does not exist") !== -1) 
-			{
-				console.log("Injectors are not loaded. Loading them now.");
-				buildInjectors();
-				callbackSuccess(false);
-			} 
-			else if (theResponse.action == "action_popup_injectors_probe_reply")
-			{
-				console.log("Injectors are loaded, we're good");
-				callbackSuccess(true);
-			}
-		});
-	});
-}
-function buildInjectors()
-{
-	var contentScripts = chrome.runtime.getManifest().lazyContentScripts;
-	for (var scriptIndex in contentScripts)
-	{
-		var scriptName = contentScripts[scriptIndex];
-		
-		//Ghetto workaround for deep copying this thing
-		(function (scriptNameDeep)
-		{
-			chrome.tabs.query({active: true, currentWindow: true}, function(tabs) 
-			{
-				chrome.scripting.executeScript({
-					target: {tabId: tabs[0].id, allFrames: false},
-					files: [ scriptNameDeep ]
-				});
-			});
-		})(scriptName);
-	}
-}
-/*
  * Called when the plugin's UI is loaded and accessible. May be borked on IE8 :)
  */
 function buildPluginUI() 
@@ -185,19 +142,18 @@ function buildPluginUI()
 /*
  * Called when the document is loaded
  */
-document.addEventListener("DOMContentLoaded", function(event) { 
-	probeInjectors(function(successStatus)
+document.addEventListener("DOMContentLoaded", async function(event) { 
+	console.log("Popup.js: DOMContentLoaded event was triggered.");
+	const successStatus = await probeContentScripts();
+	//console.log("Popup.js: DOMContentLoaded event: probeContentScripts status=", successStatus);
+	if (successStatus)
 	{
-		if (successStatus)
-		{
-			buildPluginUI();
-		}
-		else
-		{
-			console.log("Please reopen the popup window. The page is now injected.");
-		}
-	});
-	//buildInjectors(); //Don't always force the building of injectors, because they may already be present
+		buildPluginUI();
+	}
+	else
+	{
+		console.log("Please reopen the popup window. The page is now injected.");
+	}
 
     chrome.storage.local.get(['NavigationHistoryWindowID']).then(async (localObj) => {
     	if (localObj != null) {
@@ -224,6 +180,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
            		);
    		});*/
 	});
+	return true;
 });
 
 /*
@@ -326,9 +283,44 @@ document.querySelector('#undoHighlightTextInputAssociationsButton').addEventList
 });
 
 document.querySelector('#showNavigationHistoryButton').addEventListener('click', function() {
-	chrome.runtime.sendMessage({action: "action_popup_visible"}, function(theResponse) 
-	{
-			console.log(theResponse);
+	chrome.storage.local.get(['NavigationHistoryWindowID']).then(async (localObj) => {
+    	if (localObj != null) {
+    		NavigationHistoryWindowID = localObj.NavigationHistoryWindowID;
+    	}
+	    console.log('NavigationHistoryWindowID=', NavigationHistoryWindowID);    
+
+		if ((NavigationHistoryWindowID != -1) && (NavigationHistoryWindowID != null)) {
+			chrome.windows.get(NavigationHistoryWindowID)
+				.then (async (window) => {
+					if (window != null) {
+						console.log("#showNavigationHistoryButton click handler: " +
+								"NavigationHistoryWindow state=" + window.state);
+					}
+				}).catch ((error) => {
+					// probably the navigation history window was closed (destroyed) => create the window
+					console.log("Error getting the NavigationHistory window: ", error);
+					chrome.windows.create({'focused': false, 'url': 'navigation-history.html', 'type': 'popup', 
+						'width': 600, 'height' : 600, left: 100, top: 300}, function(window) {
+   						console.log('Navigation history popup created. WindowID=', window.id);
+   						window.alwaysOnTop = false;
+   						NavigationHistoryWindowID = window.id;
+           				chrome.storage.local.set(
+               				{"NavigationHistoryWindowID": NavigationHistoryWindowID}  
+           				);
+   					});
+				});
+		} else {
+			// there is no navigation history window => create it
+			chrome.windows.create({'focused': false, 'url': 'navigation-history.html', 'type': 'popup', 
+				'width': 600, 'height' : 600, left: 100, top: 300}, function(window) {
+   					console.log('Navigation history popup created. WindowID=', window.id);
+   					window.alwaysOnTop = false;
+   					NavigationHistoryWindowID = window.id;
+           			chrome.storage.local.set(
+               			{"NavigationHistoryWindowID": NavigationHistoryWindowID}  
+           			);
+   			});
+		}
 	});
 });
 
@@ -357,6 +349,20 @@ document.querySelector('#endPrimaryBlockButton').addEventListener('click', funct
 	console.log("End recording primary block...");
     document.querySelector('#endPrimaryBlockButton').style.display = "none";
     document.querySelector('#startPrimaryBlockButton').style.display = "block";
+
+    /*chrome.runtime.sendMessage({request: "message_popup_background_getPrimaryBlockRecording"},
+		function(response) {
+			console.log("PrimaryBlockRecording:", response);
+			document.querySelector("#PrimaryBlockJSON").innerHTML = JSON.stringify(response);		
+		}
+	);*/
+});
+
+document.querySelector('#finalizeStep').addEventListener('click', function() {
+	console.log("Click on finalization step...");
+    
+    chrome.runtime.sendMessage({request: 'message_popup_background_FinalizeStepState', 
+    		state: document.querySelector('#finalizeStep').checked});
 });
 
 document.querySelector('#startAutomaticBrowsingButton').addEventListener('click', function() {
@@ -372,26 +378,59 @@ document.querySelector('#startAutomaticBrowsingButton').addEventListener('click'
 });
 
 document.querySelector('#executeProcessButton').addEventListener('click', function() {
-	console.log("Automatic execution started...");
+	console.log("Popup.js: Automatic execution started...");
 	// send message to background
 	chrome.runtime.sendMessage({request: 'message_popup_background_StateChanged', state: "Automatic execution"});
-	// send message to page - codul de mai jos executa un singur bloc primar (merge)
+	// 1. codul de mai jos executa un singur bloc primar (merge)
 	/*chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_StateChanged', 
         						state: "Automatic execution"}, function(response) {});
     });*/
-    // codul asta executa 2 blocuri primare in succesiune (nu merge)
+    // 2. codul asta executa 2 blocuri primare in succesiune (merge)
 	(async () => {
 		console.log("Popup.js: Starting executing the first primary block!");
     	//await executeProcess(JSON.parse(document.querySelector("#processDescription").value));
     	await executeProcess(InsertAccount_PrimaryBlock);
-    	await pause(50000);
+    	await pause(10000);
     	console.log("Popup.js: Starting executing the second primary block!");
     	//await executeProcess(JSON.parse(document.querySelector("#processDescription").value));
     	await executeProcess(InsertAccount_PrimaryBlock);
-    	await pause(50000);
-    	return "SUCCESS";
+    	//await pause(10000);  	
     })();
+
+    // 3. codul asta executa un proces complex dat de user in "Automatic execution" tab of the Popup (de testat)
+    /* Ex. de proces complex dat de user in "Automatic execution" tab din Popup:
+    	[
+			// an InsertAccount_PrimaryBlock
+			{concept: "Account", operation: "INSERT", parameters:{"Account Name":"UBBtest","Phone":"00000000000", 
+   					"Fax":"00000000000","Website":"www.ubbcluj.ro","Parent Account":"", "Ticker Symbol":"a", 
+			  		"Address":"Str.M.Kogalniceanu,Cluj", "Description":"University", "Industry":"Academic","SICCode":"00000","Ownership":""}},
+			// an UpdateAccount_PrimaryBlock of the Account Name "UBBtest" ("Account Name" is the key of the entity)
+			{concept: "Account", operation: "UPDATE", parameters:{"Account Name":"UBBtest","Phone":"00000000000", 
+   					"Fax":"00000000000","Website":"www.ubbcluj.ro","Parent Account":"", "Ticker Symbol":"a", 
+			  		"Address":"Str.M.Kogalniceanu,Cluj", "Description":"University", "Industry":"Academic","SICCode":"00000","Ownership":""}},
+			// an SelectAllAccount_PrimaryBlock
+			{concept: "Account", operation: "SELECTALL"}
+		];
+	*/
+	/*let complexProcess = JSON.parse(document.querySelector("#processDescription").value);
+    for (let primaryBlockSpec of complexProcess) {
+    	let primaryBlockKey = primaryBlockSpec.operation + " " + primaryBlockSpec.concept;
+    	if !(primaryBlockKey in RecordedPrimaryBlocks) {
+    		console.log("Popup.js: automatic execution: there is no recorded ", primaryBlockKey, " primary block");
+    	} else {
+    		let primaryBlock = RecordedPrimaryBlocks[primaryBlockKey];
+    		(async () => {
+				console.log("Popup.js: Starting executing a primary block!");
+    			await executeProcess(primaryBlock);
+    			await pause(10000);
+    			console.log("Popup.js: End executing the primary block!");  	
+    		})();	
+    	}
+	}*/
+
+    console.log("Popup.js: Automatic execution ended.");
+    return true;
 });
 
 
@@ -412,7 +451,6 @@ var InsertAccount_PrimaryBlock = [
 //	{operation:"Post-Operation", target: "A.ms-crm-Menu-Label/ SPAN.ms-crm-CommandBar-Button.ms-crm-Menu-Label/ LI#account|NoRelationship|Form|Mscrm.Form.account.SaveAndClose/ UL.ms-crm-CommandBar-Menu/ DIV#commandContainer3/DIV#crmRibbonManager/ DIV#crmTopBar/" , targetText: "SAVE & CLOSE"}  
 ];
 
-var InsertAccount_PrimaryBlockNULL = [];
 
 // code care este in 01-utils.js
 function sleep(ms) {
@@ -428,20 +466,6 @@ async function pause(pauseInterval = 10000 /*ms*/) {
 
 async function executeProcess(process) {
 
-/*	// send message to page
-	await chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_ExecuteAppURLInitialization'}, 
-        	function(response) {});
-    });
-    await pause(20000);
-
-	// send message to page
-	await chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {request: 'message_popup_page_ExecutePrimaryBlock',
-    		primaryBlock: process}, function(response) {});
-    });
-    await pause(20000);
-*/
 	// send message to page
 	console.log("Popup.js::executeProcess() Settings.targetAppURL=", Settings.targetAppURL);
 	let activeTab = await chrome.tabs.query({active: true, currentWindow: true});
@@ -453,21 +477,22 @@ async function executeProcess(process) {
     // after document reload in the browser, we must manually reinject all the content scripts in the
     // context of the new document loaded in the browser; otherwise, all content scripts functionality
     // of the plugin will stop
-    await injectContentScripts(activeTab[0].id);
-    await pause(10000);
+    // Normally this is not needed, the lazy content scripts should already be loaded by background script
+    // on tabs.onUpdated or by the popup on DOMContentLoaded
+	await probeContentScripts();
+    await pause(5000); // this sleep is important because otherwise the content scripts are not completely
+    					// loaded and page.js can not respond to the message_popup_page_ExecutePrimaryBlock message from us
 
 	// send message to page
-	// TODO: Trebuie sa ma prind de ce nu face wait mai jos !!!!
-    activeTab = await chrome.tabs.query({active: true, currentWindow: true});
-    const response1 = await chrome.tabs.sendMessage(activeTab[0].id, {request: 'message_popup_page_ExecutePrimaryBlock',
-    		primaryBlock: process});
-    console.log("Popup.js::executeProcess() response1=" + response1);
-
-    console.log("Popup.js::executeProcess() sleeping after the Primary block execution completed");
-    await pause(10000);
+	console.log("Popup.js: sending message_popup_page_ExecutePrimaryBlock to Page.js");
+	const response1 = await chrome.tabs.sendMessage(activeTab[0].id, {request: 'message_popup_page_ExecutePrimaryBlock',
+			primaryBlock: process});
+    console.log('ExecutePrimaryBlock done!');
+    console.log("Popup.js::executeProcess() ExecutePrimaryBlock done! response= " + response1);
 
 }
 
+/*
 async function injectContentScripts(tabId) {
 	console.log("Popup.js: injecting content script in tab.");
     let contentScripts = chrome.runtime.getManifest().lazyContentScripts;
@@ -477,10 +502,10 @@ async function injectContentScripts(tabId) {
         //Ghetto workaround for deep copying this thing
         (function (scriptNameDeep)
             {
-                chrome.scripting.executeScript({
+                chrome.scripting `.executeScript({
                     target: {tabId: tabId, allFrames: false},
                     files: [ scriptNameDeep ]
                     });
                 })(scriptName);
             }
-}
+}*/

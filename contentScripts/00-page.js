@@ -76,14 +76,16 @@ console.log('clickableElements: ', clickableElements);*/
 
 
 // TODO: Commented out for debugging; they need to be uncommented 
-//monitorClickEventsOnAllDocuments();
+var ListOfClickMonitoredFrames = [];
+monitorClickEventsOnAllDocuments();
+
 
 function monitorClickEventsOnAllDocuments() {
     console.log ("There are ", window.frames.length, " frames in the current window.");
 
     document.addEventListener('click', function(event) {
         monitorClickEvent(document, 'DocumentRoot', event);
-    }, true); // the last parameter, true, is very important because it allown the event to be
+    }, true); // the last parameter, true, is very important because it allows the event to be
               // handled first by our function and only then it is handled by some inner handlers 
               // through event bubbleing
 
@@ -94,6 +96,34 @@ function monitorClickEventsOnAllDocuments() {
                 monitorClickEvent.bind(null, window.frames[i].frameElement, 
                                   window.frames[i].frameElement.getAttribute("id")),
                 true);
+                ListOfClickMonitoredFrames.push(window.frames[i].frameElement);
+        }
+        i++;
+    }
+}
+
+function RecheckMonitorClickEventsOnAllDocuments() {
+    // if new frames were loaded that are not currently click monitored, we need to monitor them too
+    // this is useful for example for the Update Account use case
+    
+    let i = 0;
+    while (i<window.frames.length) {
+        if (window.frames[i] != null) {
+            let found = false;
+            for (let j=0; j<ListOfClickMonitoredFrames.length; j++) {
+                if (window.frames[i].frameElement.getAttribute("id") == ListOfClickMonitoredFrames[j]) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found == false) {
+                window.frames[i].document.addEventListener('click', 
+                    monitorClickEvent.bind(null, window.frames[i].frameElement, 
+                                      window.frames[i].frameElement.getAttribute("id")),
+                    true);
+                ListOfClickMonitoredFrames.push(window.frames[i].frameElement.getAttribute("id"));
+            }
         }
         i++;
     }
@@ -133,9 +163,6 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
      * sendMessage({ response : "message_[fisier sursa]_[fisier destinatie]_[actiune/metoda]", parameters: ... } )
      */
 
-    /* 4est: after I reload the plugin, I must refresh the tab http://172.30.3.49:5555/CRMEndava/
-     * because otherwise the page.js is not loaded in the context of this tab
-     */
     console.log("Message received by content script:", receivedMessage);
 
     if (receivedMessage.request == "message_popup_page_StateChanged") {
@@ -144,20 +171,51 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
 
         // Start the automatic execution of the process
         // codul acesta se declanseaza acum de un mesaj separat, "message_popup_page_ExecutePrimaryBlock"
-        if (receivedMessage.state == "Automatic execution") {
+        /*if (receivedMessage.state == "Automatic execution") {
             console.log("Automatic execution started...");
             ExecutePrimaryBlock(InsertAccount_PrimaryBlock);
-        }
+        }*/
 
     } else if (receivedMessage.request == "message_background_page_mapUIOperation") {
+        //return true; //dezactivam un pic partea asta pt. demo - trebuie decomentat return true ca sa mearga automatic execution !
+
         (async () => {
             console.log("Msg. message_background_page_mapUIOperation received from background.");
             // wait for the UI operation to complete  
             await pause(10000);
 
+            // check if new frames were added to the document, monitor the click events in those frames
+            RecheckMonitorClickEventsOnAllDocuments();
+
             let detectedConceptOperation = await mapUIOperation();
 
-            // TODO: trebuie sa trimit conceptul si operatia detectata la background si la popup
+            var node = null;
+            /* chrome.storage.local.get(["ClickedElementID"], function(item) {
+                console.log("Data saved in chrome.storage.local:",item);
+                node = item;
+                console.log("node:", node);
+                // TODO: a se muta in afara acestui block cu async
+                //sendResponse({response: "message_page_popup_primaryNavigationBlockDetected",
+                //        preLeafNode: node, concept : detectedConceptOperation.concept, 
+                //        operation: detectedConceptOperation.operation});
+            });*/
+     
+            console.log("-----node:", node);
+            // trebuie sa trimit conceptul si operatia detectata la background si la popup
+            // sending message to popup.js
+            chrome.runtime.sendMessage({request: "message_page_popup_operationDetected", 
+                    preLeafNode: node, operation : detectedConceptOperation?.operation, 
+                    concept : detectedConceptOperation?.concept});
+            // sending message to background.js
+            console.log("sending message_page_background_operationDetected to Background: ", detectedConceptOperation);
+            chrome.runtime.sendMessage({request: "message_page_background_operationDetected", 
+                    operation : detectedConceptOperation.operation, 
+                    concept : detectedConceptOperation.concept});
+     
+            // announce popup.js that the UI operation was completed
+            console.log("sending message_page_popup_UIOperationCompleted to Popup: ");
+            chrome.runtime.sendMessage({request: "message_page_popup_UIOperationCompleted"});
+
         })();
 
     } else if (receivedMessage.request == "message_background_page_updatePhantomDOM") {
@@ -241,13 +299,27 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
     } else if (receivedMessage.request == "message_popup_page_ExecutePrimaryBlock") {
         (async () => {
             console.log("Automatic execution started...");
+            // TODO: If the click events in the PrimaryBlock cause full page reloads (not XHR requests)
+            // this execution of the PrimaryBlock in the page.js won't work because the content
+            // scripts are not loaded in the context of the tab when a new document gets reloaded.
+            // I have to move the whole execution in the background script.
+            // Luckily, most web apps. are single page applications, i.e. use XHR requests, not full HTTP requests.
             //ExecutePrimaryBlock(receivedMessage.primaryBlock);
-            const response = await ExecutePrimaryBlock(InsertAccount_PrimaryBlock); // deocamdata doar de test
+            const response = await ExecutePrimaryBlock(InsertAccount_PrimaryBlock); 
+            console.log("sending the message_page_popup_ExecutePrimaryBlock RESPONSE.. ", response);
             sendResponse({response: "message_page_popup_ExecutePrimaryBlock",
                 result : response});
+            console.log("Page.js: finished execution of PrimaryBlock!");
         })();    
+        return true; // keep the messaging channel open for sendResponse (It's very important to be here, outside the async block!!!)
+                     // see: https://stackoverflow.com/questions/53024819/sendresponse-not-waiting-for-async-function-or-promises-resolve/53024910#53024910
+                     // "The problem is that your listener is declared with async keyword, 
+                     // so it returns a Promise, not a literal true value as required by onMessage 
+                     // implementation, but Chrome still doesn't support Promise in the returned value 
+                     // of onMessage listener in ManifestV3 and V2, which is reported in 
+                     // https://crbug.com/1185241. Your returned Promise is just ignored, the port 
+                     // is immediately closed, and the caller receives undefined in response."
     }
-
 
 });
 
@@ -256,11 +328,11 @@ async function mapUIOperation() {
     // associate new tags with the attribute "taskmateID" and compute the diffDOM
     diffDOM = computeDifferenceDOM();
     // BUG !!! Doublecheck everything because for Jira, some tags remain without taskmateID attribute
-    console.log("mapUIOperation(): tags that still don't have the Taskmate custom attribute: ");
+    /*console.log("mapUIOperation(): tags that still don't have the Taskmate custom attribute: ");
     document.querySelectorAll("body :not([taskmateID], .taskmate-canvas)").forEach(function(elem) {
         //element.setAttribute("taskmateID", -1);
         console.log(elem);
-    })
+    })*/
     console.log("mapUIOperation(): mapping UI operation, diffDOM = ", diffDOM);
 
     let detectedConceptualOperations = processDOMDifference();
