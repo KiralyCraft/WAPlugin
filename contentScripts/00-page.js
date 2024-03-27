@@ -306,6 +306,7 @@ chrome.runtime.onMessage.addListener(function(receivedMessage, sender, sendRespo
             // Luckily, most web apps. are single page applications, i.e. use XHR requests, not full HTTP requests.
             //ExecutePrimaryBlock(receivedMessage.primaryBlock);
             const response = await ExecutePrimaryBlock(InsertAccount_PrimaryBlock); 
+            //const response = await ExecutePrimaryBlock(receivedMessage.primaryBlock);
             console.log("sending the message_page_popup_ExecutePrimaryBlock RESPONSE.. ", response);
             sendResponse({response: "message_page_popup_ExecutePrimaryBlock",
                 result : response});

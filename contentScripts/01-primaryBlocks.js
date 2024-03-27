@@ -39,7 +39,7 @@ let SelectAllAccount_PrimaryBlock = [
 	{operation: "Click", target : "IMG/ SPAN.navActionButtonIcon/ SPAN.navActionButtonIconContainer/ A#SFA/ LI.nav-group/ SPAN.nav-layout/ SPAN.nav-groupBody/ SPAN.nav-groupContainer/ LI.nav-subgroup/ UL.nav-tabBody/ DIV#actionGroupControl/ DIV#actionGroupControl_viewport/ DIV#actionGroupControl_scrollableContainer/ DIV.mainTab-nav-scrl/ DIV.navActionGroupContainer/ DIV#crmMasthead/ ", targetText : ""}, 
 	{concept: "", operation : "Generic DOM"}, 
 	{operation: "Click", target: "SPAN.nav-rowLabel/ A#nav_accts/ LI.nav-subgroup/ SPAN.nav-section/ SPAN.nav-layout/ SPAN.nav-groupBody/ SPAN.nav-groupContainer/ LI.nav-group/ UL.nav-tabBody/ DIV#detailActionGroupControl/ DIV#detailActionGroupControl_viewport/ DIV#detailActionGroupControl_scrollableContainer/ DIV.nav-scrl/ DIV.navActionListContainer/ DIV#crmMasthead/ ", targetText: "Accounts"}, 
-	{concept : ['Account'], operation: "SELECTALL"}, 
+	{concept : ['Account'], operation: "SELECTALL"}
 ];
 
 

@@ -492,20 +492,3 @@ async function executeProcess(process) {
 
 }
 
-/*
-async function injectContentScripts(tabId) {
-	console.log("Popup.js: injecting content script in tab.");
-    let contentScripts = chrome.runtime.getManifest().lazyContentScripts;
-    for (let scriptIndex in contentScripts)
-    {
-        let scriptName = contentScripts[scriptIndex];
-        //Ghetto workaround for deep copying this thing
-        (function (scriptNameDeep)
-            {
-                chrome.scripting `.executeScript({
-                    target: {tabId: tabId, allFrames: false},
-                    files: [ scriptNameDeep ]
-                    });
-                })(scriptName);
-            }
-}*/
